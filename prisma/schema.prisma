@@ -1,0 +1,443 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ACADEMY_ADMIN
+  TEACHER
+  STUDENT
+  PARENT
+  STAFF
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum BatchStatus {
+  PLANNED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  COMPLETED
+  DROPPED
+  FROZEN
+}
+
+enum SessionType {
+  ONSITE
+  ONLINE
+  HYBRID
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  VOID
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  BANK_TRANSFER
+  ONLINE_WALLET
+  OTHER
+}
+
+enum StaffDepartment {
+  FRONT_DESK
+  ACCOUNTING
+  OPERATIONS
+  HR
+  ACADEMIC_COORDINATION
+  OTHER
+}
+
+model Academy {
+  id          String              @id @default(uuid())
+  code        String              @unique
+  name        String
+  legalName   String?
+  logoUrl     String?
+  phone       String?
+  email       String?
+  websiteUrl  String?
+  address     String?
+  city        String?
+  country     String?
+  timezone    String              @default("UTC")
+  isActive    Boolean             @default(true)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  branches    Branch[]
+  users       User[]
+  students    StudentProfile[]
+  teachers    TeacherProfile[]
+  parents     ParentProfile[]
+  staff       StaffProfile[]
+  courses     Course[]
+  batches     Batch[]
+  sessions    Session[]
+  enrollments Enrollment[]
+  attendances Attendance[]
+  invoices    Invoice[]
+  payments    Payment[]
+  links       ParentStudentLink[]
+  auditLogs   AuditLog[]
+}
+
+model PlatformAdmin {
+  id                 String     @id @default(uuid())
+  username           String     @unique
+  passwordHash       String
+  fullName           String
+  email              String?    @unique
+  phone              String?
+  isActive           Boolean    @default(true)
+  mustChangePassword Boolean    @default(true)
+  lastLoginAt        DateTime?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+  auditLogs          AuditLog[]
+}
+
+model Branch {
+  id        String           @id @default(uuid())
+  academyId String
+  name      String
+  code      String
+  address   String?
+  phone     String?
+  isActive  Boolean          @default(true)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  academy   Academy          @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  students  StudentProfile[]
+  teachers  TeacherProfile[]
+  staff     StaffProfile[]
+  batches   Batch[]
+  sessions  Session[]
+
+  @@unique([academyId, code])
+  @@index([academyId, name])
+}
+
+model User {
+  id                 String          @id @default(uuid())
+  academyId          String
+  username           String
+  passwordHash       String
+  fullName           String
+  email              String?
+  phone              String?
+  role               UserRole
+  status             UserStatus      @default(ACTIVE)
+  mustChangePassword Boolean         @default(true)
+  lastLoginAt        DateTime?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  academy            Academy         @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  studentProfile     StudentProfile?
+  teacherProfile     TeacherProfile?
+  parentProfile      ParentProfile?
+  staffProfile       StaffProfile?
+  receivedPayments   Payment[]       @relation("PaymentReceiver")
+  auditLogs          AuditLog[]
+
+  @@unique([academyId, username])
+  @@unique([academyId, email])
+  @@index([academyId, role, status])
+}
+
+model StudentProfile {
+  id             String              @id @default(uuid())
+  academyId      String
+  userId         String              @unique
+  branchId       String?
+  studentCode    String
+  gender         Gender?
+  dateOfBirth    DateTime?
+  enrollmentDate DateTime            @default(now())
+  notes          String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  academy        Academy             @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branch         Branch?             @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  enrollments    Enrollment[]
+  parentLinks    ParentStudentLink[]
+  invoices       Invoice[]
+
+  @@unique([academyId, studentCode])
+  @@index([academyId, branchId])
+}
+
+model TeacherProfile {
+  id             String    @id @default(uuid())
+  academyId      String
+  userId         String    @unique
+  branchId       String?
+  teacherCode    String
+  specialization String?
+  hireDate       DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  academy        Academy   @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branch         Branch?   @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  batches        Batch[]
+  sessions       Session[]
+
+  @@unique([academyId, teacherCode])
+  @@index([academyId, branchId])
+}
+
+model ParentProfile {
+  id         String              @id @default(uuid())
+  academyId  String
+  userId     String              @unique
+  occupation String?
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+  academy    Academy             @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  links      ParentStudentLink[]
+
+  @@index([academyId])
+}
+
+model StaffProfile {
+  id            String          @id @default(uuid())
+  academyId     String
+  userId        String          @unique
+  branchId      String?
+  staffCode     String
+  department    StaffDepartment @default(OTHER)
+  positionTitle String?
+  hireDate      DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  academy       Academy         @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branch        Branch?         @relation(fields: [branchId], references: [id], onDelete: SetNull)
+
+  @@unique([academyId, staffCode])
+  @@index([academyId, branchId])
+}
+
+model ParentStudentLink {
+  id        String         @id @default(uuid())
+  academyId String
+  parentId  String
+  studentId String
+  relation  String
+  isPrimary Boolean        @default(false)
+  createdAt DateTime       @default(now())
+  academy   Academy        @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  parent    ParentProfile  @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([academyId, parentId, studentId])
+  @@index([academyId, studentId])
+}
+
+model Course {
+  id            String   @id @default(uuid())
+  academyId     String
+  code          String
+  name          String
+  description   String?
+  durationHours Int?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  academy       Academy  @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  batches       Batch[]
+
+  @@unique([academyId, code])
+  @@index([academyId, name])
+}
+
+model Batch {
+  id           String          @id @default(uuid())
+  academyId    String
+  branchId     String?
+  courseId     String
+  instructorId String?
+  code         String
+  title        String?
+  startDate    DateTime
+  endDate      DateTime
+  capacity     Int?
+  status       BatchStatus     @default(PLANNED)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  academy      Academy         @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  branch       Branch?         @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  course       Course          @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  instructor   TeacherProfile? @relation(fields: [instructorId], references: [id], onDelete: SetNull)
+  sessions     Session[]
+  enrollments  Enrollment[]
+
+  @@unique([academyId, code])
+  @@index([academyId, courseId, status])
+}
+
+model Enrollment {
+  id          String           @id @default(uuid())
+  academyId   String
+  studentId   String
+  batchId     String
+  enrolledAt  DateTime         @default(now())
+  status      EnrollmentStatus @default(ACTIVE)
+  finalScore  Float?
+  academy     Academy          @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  student     StudentProfile   @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  batch       Batch            @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  attendances Attendance[]
+  invoices    Invoice[]
+
+  @@unique([academyId, studentId, batchId])
+  @@index([academyId, batchId, status])
+}
+
+model Session {
+  id           String          @id @default(uuid())
+  academyId    String
+  batchId      String
+  branchId     String?
+  instructorId String?
+  title        String?
+  sessionType  SessionType     @default(ONSITE)
+  startsAt     DateTime
+  endsAt       DateTime
+  roomName     String?
+  meetingUrl   String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  academy      Academy         @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  batch        Batch           @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  branch       Branch?         @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  instructor   TeacherProfile? @relation(fields: [instructorId], references: [id], onDelete: SetNull)
+  attendances  Attendance[]
+
+  @@index([academyId, batchId, startsAt])
+}
+
+model Attendance {
+  id           String           @id @default(uuid())
+  academyId    String
+  sessionId    String
+  enrollmentId String
+  status       AttendanceStatus @default(PRESENT)
+  checkInAt    DateTime?
+  notes        String?
+  createdAt    DateTime         @default(now())
+  academy      Academy          @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  session      Session          @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  enrollment   Enrollment       @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  @@unique([academyId, sessionId, enrollmentId])
+  @@index([academyId, status])
+}
+
+model Invoice {
+  id            String         @id @default(uuid())
+  academyId     String
+  enrollmentId  String?
+  studentId     String
+  invoiceNumber String
+  status        InvoiceStatus  @default(ISSUED)
+  issueDate     DateTime       @default(now())
+  dueDate       DateTime
+  currency      String         @default("USD")
+  totalAmount   Decimal        @db.Decimal(10, 2)
+  paidAmount    Decimal        @default(0) @db.Decimal(10, 2)
+  notes         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  academy       Academy        @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  enrollment    Enrollment?    @relation(fields: [enrollmentId], references: [id], onDelete: SetNull)
+  student       StudentProfile @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  items         InvoiceItem[]
+  payments      Payment[]
+
+  @@unique([academyId, invoiceNumber])
+  @@index([academyId, studentId, status])
+}
+
+model InvoiceItem {
+  id          String  @id @default(uuid())
+  invoiceId   String
+  description String
+  quantity    Int     @default(1)
+  unitPrice   Decimal @db.Decimal(10, 2)
+  lineTotal   Decimal @db.Decimal(10, 2)
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+}
+
+model Payment {
+  id               String        @id @default(uuid())
+  academyId        String
+  invoiceId        String
+  receivedByUserId String?
+  paymentReference String?
+  amount           Decimal       @db.Decimal(10, 2)
+  method           PaymentMethod @default(CASH)
+  paidAt           DateTime      @default(now())
+  receiptUrl       String?
+  notes            String?
+  createdAt        DateTime      @default(now())
+  academy          Academy       @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  invoice          Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  receivedBy       User?         @relation("PaymentReceiver", fields: [receivedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([academyId, paymentReference])
+  @@index([academyId, paidAt])
+}
+
+model AuditLog {
+  id                   String         @id @default(uuid())
+  academyId            String?
+  actorUserId          String?
+  actorPlatformAdminId String?
+  action               String
+  entityType           String
+  entityId             String?
+  metadata             Json?
+  createdAt            DateTime       @default(now())
+  academy              Academy?       @relation(fields: [academyId], references: [id], onDelete: SetNull)
+  actorUser            User?          @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  actorPlatformAdmin   PlatformAdmin? @relation(fields: [actorPlatformAdminId], references: [id], onDelete: SetNull)
+
+  @@index([academyId, createdAt])
+  @@index([entityType, entityId])
+}
