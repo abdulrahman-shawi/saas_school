@@ -1,19 +1,13 @@
-import { cookies } from "next/headers";
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/jwt";
+import { UserRole } from "@prisma/client";
+import { getServerSession } from "@/lib/session";
 
 /**
  * Dashboard page for authenticated users.
  */
 export default async function DashboardPage() {
-  const cookieStore = cookies();
-  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
-
-  if (!token) {
-    redirect("/login");
-  }
-
-  const session = await verifySessionToken(token);
+  const session = await getServerSession();
 
   if (!session) {
     redirect("/login");
@@ -35,6 +29,17 @@ export default async function DashboardPage() {
         <p className="text-slate-700">
           Username: <span className="font-medium">{session.username}</span>
         </p>
+
+        {session.role === UserRole.ACADEMY_ADMIN && (
+          <div className="mt-6">
+            <Link
+              href="/dashboard/admin"
+              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white"
+            >
+              Open Admin User Management
+            </Link>
+          </div>
+        )}
 
         <form action="/api/auth/logout" method="post" className="mt-8">
           <button
