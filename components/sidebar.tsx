@@ -1,6 +1,6 @@
 "use client";
 import { useAuth } from "@/context/AuthContext";
-import { hasAnyPermission, isAdmin } from "@/lib/utils";
+// import { hasAnyPermission, isAdmin } from "@/lib/utils";
 import { 
   Home, BarChart2, Users, Settings, ChevronRight, ChevronLeft, 
   Receipt, Box, FileText, PieChart, ShieldCheck, HelpCircle, LogOut, 
@@ -82,62 +82,8 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }: { isCollapsed: boolean;
       </div>
     ), { duration: 5000, position: "top-center" });
   };
-  // تنظيم الروابط في مجموعات لسهولة القراءة
-  const menuGroups = user ? [
-    {
-      group: "الرئيسية",
-      items: [
-        { icon: Home, label: "لوحة التحكم", href: "/dashboard" },
-        (user && hasAnyPermission(user, ["viewAnalytics"])) &&
-        { icon: BarChart2, label: "التحليلات", href: "/dashboard/analytics" },
-      ].filter(Boolean)
-    },
-    {
-      group: "الأقسام الرئيسية",
-      items : [
-        (user && hasAnyPermission(user, ["viewCategories", "addCategories", "editCategories", "deleteCategories"])) &&
-        { icon: Receipt, label: "الأقسام", href: "/dashboard/categories" },
-        (user && hasAnyPermission(user, ["viewCategories", "addCategories", "editCategories", "deleteCategories"])) &&
-        { icon: Warehouse, label: "المستودعات", href: "/dashboard/inventories" },
-        (user && hasAnyPermission(user, ["viewProducts", "addProducts", "editProducts", "deleteProducts"])) &&
-        { icon: Box, label: "المنتجات", href: "/dashboard/products" },
-        (user && isAdmin(user)) &&
-        { icon: Box, label: "حركات المخزون", href: "/dashboard/move-product" },
-        (user && hasAnyPermission(user, ["viewCustomers", "addCustomers", "editCustomers", "deleteCustomers"])) &&
-        { icon: Users, label: "السجلات", href: "/dashboard/customers" },
-        (user && hasAnyPermission(user, ["viewCustomers", "addCustomers", "editCustomers", "deleteCustomers"])) &&
-  { icon: Users, label: "العملاء", href: "/dashboard/customers-complated" },
-          (user && hasAnyPermission(user, ["viewExpenses", "addExpenses", "editExpenses", "deleteExpenses"])) &&
-          { icon: PieChart, label: "المصاريف اليومية", href: "/dashboard/expenses" },
-  
-  // نستخدم الـ Optional Chaining (?.) لضمان عدم حدوث خطأ إذا كان الـ user غير موجود بعد
-  (user && hasAnyPermission(user, ["viewOrders", "addOrders", "editOrders", "deleteOrders"])) &&
-  { icon: FileText, label: "الطلبات", href: "/dashboard/orders" },
-  (user && isAdmin(user)) &&
-  { icon: ShieldCheck, label: "الكفالة", href: "/dashboard/warranty" },
-  (user && isAdmin(user)) &&
-  { icon: Truck, label: "شركات الشحن", href: "/dashboard/shipping" },
-].filter(Boolean) // هذا السطر هو الأهم: يقوم بحذف أي قيمة false من المصفوفة
-    },
-    {
-      group: "المستخدمين و الأدوار",
-      items: [
-          (user && hasAnyPermission(user, ["viewEmployees", "addEmployees", "editEmployees", "deleteEmployees"])) &&
-       { icon: Users, label: "المستخدمين", href: "/dashboard/users" },
-         (user && isAdmin(user)) &&
-       { icon: Users2, label: "رواتب الموظفين", href: "/dashboard/employee-salaries" },
-         (user && hasAnyPermission(user, ["viewPermissions", "addPermissions", "editPermissions", "deletePermissions"])) &&
-       { icon: RollerCoasterIcon, label: "الأدوار", href: "/dashboard/permissions" },
-      ].filter(Boolean),
-    },
-    {
-      group: "إعدادات النظام",
-      items: [
-        (user && isAdmin(user)) &&
-        { icon: Settings, label: "الإعدادات العامة", href: "/dashboard/settings" },
-      ].filter(Boolean)
-    },
-  ].filter(group => group.items.length > 0) : [];
+  // سنضيف أقسام القائمة تدريجيا
+  const menuGroups: Array<{ group: string; items: Array<{ icon: any; label: string; href: string }> }> = [];
 
   const handleLogout = async () => {
     try {
