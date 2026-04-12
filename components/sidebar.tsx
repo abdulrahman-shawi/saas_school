@@ -2,7 +2,7 @@
 import { useAuth } from "@/context/AuthContext";
 import { isSuperAdminAcademyCode } from "@/lib/super-admin";
 import { 
-  Home, Building2, ChevronRight, ChevronLeft, LogOut,
+  Home, Building2, School, ChevronRight, ChevronLeft, LogOut,
   Download,
 } from "lucide-react";
 import Link from "next/link";
@@ -77,6 +77,7 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }: { isCollapsed: boolean;
     ), { duration: 5000, position: "top-center" });
   };
   const isSuperAdmin = isSuperAdminAcademyCode(user?.academyCode);
+  const isAcademyAdmin = user?.accountType === "ACADEMY_ADMIN";
 
   const menuGroups: Array<{ group: string; items: Array<{ icon: any; label: string; href: string }> }> = [
     {
@@ -85,9 +86,14 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }: { isCollapsed: boolean;
     },
     {
       group: "الإدارة",
-      items: isSuperAdmin
-        ? [{ icon: Building2, label: "تسجيل الأكاديميات", href: "/dashboard/admin/academies" }]
-        : [],
+      items: [
+        ...(isAcademyAdmin
+          ? [{ icon: School, label: "الصفوف والقاعات والمدرسين", href: "/dashboard/admin/classrooms" }]
+          : []),
+        ...(isSuperAdmin
+          ? [{ icon: Building2, label: "تسجيل الأكاديميات", href: "/dashboard/admin/academies" }]
+          : []),
+      ],
     },
   ].filter((group) => group.items.length > 0);
 

@@ -109,6 +109,8 @@ model Academy {
   invoices    Invoice[]
   payments    Payment[]
   links       ParentStudentLink[]
+  classrooms  Classroom[]
+  classroomLinks ClassroomTeacher[]
   auditLogs   AuditLog[]
 }
 
@@ -213,9 +215,40 @@ model TeacherProfile {
   branch         Branch?   @relation(fields: [branchId], references: [id], onDelete: SetNull)
   batches        Batch[]
   sessions       Session[]
+  classroomLinks ClassroomTeacher[]
 
   @@unique([academyId, teacherCode])
   @@index([academyId, branchId])
+}
+
+model Classroom {
+  id        String            @id @default(uuid())
+  academyId String
+  code      String
+  name      String
+  capacity  Int?
+  isActive  Boolean           @default(true)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  academy   Academy           @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  teachers  ClassroomTeacher[]
+
+  @@unique([academyId, code])
+  @@index([academyId, name])
+}
+
+model ClassroomTeacher {
+  id          String         @id @default(uuid())
+  academyId   String
+  classroomId String
+  teacherId   String
+  createdAt   DateTime       @default(now())
+  academy     Academy        @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  classroom   Classroom      @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+  teacher     TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@unique([academyId, classroomId, teacherId])
+  @@index([academyId, teacherId])
 }
 
 model ParentProfile {
