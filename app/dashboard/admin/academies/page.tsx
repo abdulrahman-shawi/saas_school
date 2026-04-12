@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { UserRole } from "@prisma/client";
-import AdminUsersPanel from "./users-panel";
+import AcademiesPanel from "./academies-panel";
 import { getServerSession } from "@/lib/session";
 
 /**
- * Academy admin dashboard section for managing tenant users.
+ * Renders academy management page for admin users.
  */
-export default async function AdminDashboardPage() {
+export default async function AcademiesManagementPage() {
   const session = await getServerSession();
 
   if (!session) {
@@ -26,25 +26,19 @@ export default async function AdminDashboardPage() {
             <div>
               <p className="text-sm text-slate-500">Academy Admin Panel</p>
               <h1 className="text-2xl font-semibold text-slate-900">
-                User Management
+                Academy Management
               </h1>
             </div>
             <Link
-              href="/dashboard"
+              href="/dashboard/admin"
               className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700"
             >
-              Back to Dashboard
-            </Link>
-            <Link
-              href="/dashboard/admin/academies"
-              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white"
-            >
-              Manage Academies
+              Back to Admin
             </Link>
           </div>
         </div>
 
-        <AdminUsersPanel />
+        <AcademiesPanel />
       </section>
     </main>
   );
