@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { DataTable, type Column, type TableAction } from "@/components/shared/DataTable";
+import { AppModal } from "@/components/ui/app-modal";
 import { useAuth } from "@/context/AuthContext";
 import { isSuperAdminAcademyCode } from "@/lib/super-admin";
 
@@ -96,7 +97,15 @@ export default function TeachersPanel() {
   const [statusMessage, setStatusMessage] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [editingTeacherId, setEditingTeacherId] = useState<string | null>(null);
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [form, setForm] = useState<TeacherForm>(initialForm);
+
+  function openCreateModal(): void {
+    setEditingTeacherId(null);
+    setForm((prev) => ({ ...initialForm, academyId: prev.academyId }));
+    setStatusMessage("");
+    setIsFormModalOpen(true);
+  }
 
   const columns = useMemo<Column<TeacherItem>[]>(
     () => {
@@ -230,6 +239,7 @@ export default function TeachersPanel() {
       setStatusMessage(isEditing ? "Teacher updated." : "Teacher created.");
       setEditingTeacherId(null);
       setForm((prev) => ({ ...initialForm, academyId: prev.academyId }));
+      setIsFormModalOpen(false);
       await loadTeachers();
     } catch {
       setStatusMessage("Unexpected error.");
@@ -268,6 +278,7 @@ export default function TeachersPanel() {
       note: teacher.note ?? "",
       status: teacher.status,
     });
+    setIsFormModalOpen(true);
   }
 
   /**
@@ -276,7 +287,7 @@ export default function TeachersPanel() {
   function cancelEdit(): void {
     setEditingTeacherId(null);
     setForm((prev) => ({ ...initialForm, academyId: prev.academyId }));
-    setStatusMessage("");
+    setIsFormModalOpen(false);
   }
 
   /**
@@ -320,11 +331,25 @@ export default function TeachersPanel() {
   return (
     <section className="space-y-6">
       <div className="rounded-2xl bg-white p-6 shadow">
-        <h2 className="text-xl font-semibold text-slate-900">
-          {editingTeacherId ? "تعديل المدرس" : "إضافة مدرس"}
-        </h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-xl font-semibold text-slate-900">إدارة المدرسين</h2>
+          <button
+            type="button"
+            onClick={openCreateModal}
+            className="rounded-lg bg-emerald-600 px-4 py-2 font-medium text-white"
+          >
+            إضافة مدرس
+          </button>
+        </div>
+      </div>
 
-        <form className="mt-4 grid gap-3 md:grid-cols-2" onSubmit={handleSubmit}>
+      <AppModal
+        isOpen={isFormModalOpen}
+        onClose={cancelEdit}
+        title={editingTeacherId ? "تعديل المدرس" : "إضافة مدرس"}
+        size="xl"
+      >
+        <form className="grid gap-3 md:grid-cols-2" onSubmit={handleSubmit}>
           {isSuperAdmin && (
             <div className="md:col-span-2">
               <label className="mb-1 block text-sm font-medium text-slate-700">Academy</label>
@@ -435,7 +460,7 @@ export default function TeachersPanel() {
             )}
           </div>
         </form>
-      </div>
+      </AppModal>
 
       <div className="rounded-2xl bg-white p-6 shadow">
         <h2 className="text-xl font-semibold text-slate-900">عرض المدرسين</h2>

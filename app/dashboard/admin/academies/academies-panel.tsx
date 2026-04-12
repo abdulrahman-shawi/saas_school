@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { DataTable, type Column, type TableAction } from "@/components/shared/DataTable";
+import { AppModal } from "@/components/ui/app-modal";
 
 interface AcademyItem {
   id: string;
@@ -42,8 +43,16 @@ export default function AcademiesPanel() {
   const [statusMessage, setStatusMessage] = useState("");
   const [form, setForm] = useState<AcademyForm>(initialForm);
   const [editingAcademyId, setEditingAcademyId] = useState<string | null>(null);
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 8;
+
+  function openCreateModal(): void {
+    setEditingAcademyId(null);
+    setForm(initialForm);
+    setStatusMessage("");
+    setIsFormModalOpen(true);
+  }
 
   const columns = useMemo<Column<AcademyItem>[]>(
     () => [
@@ -147,6 +156,7 @@ export default function AcademiesPanel() {
       setStatusMessage(isEditing ? "Academy updated." : "Academy created.");
       setForm(initialForm);
       setEditingAcademyId(null);
+      setIsFormModalOpen(false);
       await loadAcademies();
     } catch {
       setStatusMessage("Unexpected error.");
@@ -169,6 +179,7 @@ export default function AcademiesPanel() {
       password: "",
     });
     setStatusMessage("Editing academy. Leave password empty to keep current password.");
+    setIsFormModalOpen(true);
   }
 
   /**
@@ -177,7 +188,7 @@ export default function AcademiesPanel() {
   function cancelEdit(): void {
     setEditingAcademyId(null);
     setForm(initialForm);
-    setStatusMessage("");
+    setIsFormModalOpen(false);
   }
 
   /**
@@ -217,11 +228,25 @@ export default function AcademiesPanel() {
   return (
     <section className="space-y-6">
       <div className="rounded-2xl bg-white p-6 shadow">
-        <h2 className="text-xl font-semibold text-slate-900">
-          {editingAcademyId ? "تعديل الأكاديمية" : "إضافة أكاديمية"}
-        </h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-xl font-semibold text-slate-900">إدارة الأكاديميات</h2>
+          <button
+            type="button"
+            onClick={openCreateModal}
+            className="rounded-lg bg-emerald-600 px-4 py-2 font-medium text-white"
+          >
+            إضافة أكاديمية
+          </button>
+        </div>
+      </div>
 
-        <form className="mt-4 grid gap-3 md:grid-cols-2" onSubmit={handleSubmit}>
+      <AppModal
+        isOpen={isFormModalOpen}
+        onClose={cancelEdit}
+        title={editingAcademyId ? "تعديل الأكاديمية" : "إضافة أكاديمية"}
+        size="lg"
+      >
+        <form className="grid gap-3 md:grid-cols-2" onSubmit={handleSubmit}>
           <input
             className="rounded-lg border border-slate-300 px-3 py-2"
             placeholder="رمز الأكاديمية (مثال: demo-academy)"
@@ -289,7 +314,7 @@ export default function AcademiesPanel() {
             )}
           </div>
         </form>
-      </div>
+      </AppModal>
 
       <div className="rounded-2xl bg-white p-6 shadow">
         <h2 className="text-xl font-semibold text-slate-900">عرض الأكاديميات</h2>

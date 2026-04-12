@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { DataTable, type Column, type TableAction } from "@/components/shared/DataTable";
+import { AppModal } from "@/components/ui/app-modal";
 import { useAuth } from "@/context/AuthContext";
 import { isSuperAdminAcademyCode } from "@/lib/super-admin";
 
@@ -72,6 +73,7 @@ export default function ClassroomsPanel() {
   const [submitting, setSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [editingClassroomId, setEditingClassroomId] = useState<string | null>(null);
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [form, setForm] = useState<ClassroomForm>(initialForm);
   const [classroomsPage, setClassroomsPage] = useState(1);
   const [teachersPage, setTeachersPage] = useState(1);
@@ -147,6 +149,13 @@ export default function ClassroomsPanel() {
     ],
     [],
   );
+
+  function openCreateModal(): void {
+    setEditingClassroomId(null);
+    setForm((prev) => ({ ...initialForm, academyId: prev.academyId }));
+    setStatusMessage("");
+    setIsFormModalOpen(true);
+  }
 
   /**
    * Loads academy options for super admin target selection.
@@ -267,6 +276,7 @@ export default function ClassroomsPanel() {
       setStatusMessage(isEditing ? "Classroom updated." : "Classroom created.");
       setEditingClassroomId(null);
       setForm((prev) => ({ ...initialForm, academyId: prev.academyId }));
+      setIsFormModalOpen(false);
       await Promise.all([loadClassrooms(), loadTeachers()]);
     } catch {
       setStatusMessage("Unexpected error.");
@@ -292,6 +302,7 @@ export default function ClassroomsPanel() {
       capacity: classroom.capacity ? String(classroom.capacity) : "",
       teacherIds: classroom.teachers.map((teacher) => teacher.teacherId),
     });
+    setIsFormModalOpen(true);
   }
 
   /**
@@ -300,7 +311,7 @@ export default function ClassroomsPanel() {
   function cancelEdit(): void {
     setEditingClassroomId(null);
     setForm((prev) => ({ ...initialForm, academyId: prev.academyId }));
-    setStatusMessage("");
+    setIsFormModalOpen(false);
   }
 
   /**
@@ -375,11 +386,25 @@ export default function ClassroomsPanel() {
   return (
     <section className="space-y-6">
       <div className="rounded-2xl bg-white p-6 shadow">
-        <h2 className="text-xl font-semibold text-slate-900">
-          {editingClassroomId ? "تعديل القاعة / الصف" : "إضافة قاعة / صف"}
-        </h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-xl font-semibold text-slate-900">إدارة الصفوف / القاعات</h2>
+          <button
+            type="button"
+            onClick={openCreateModal}
+            className="rounded-lg bg-emerald-600 px-4 py-2 font-medium text-white"
+          >
+            إضافة قاعة / صف
+          </button>
+        </div>
+      </div>
 
-        <form className="mt-4 grid gap-3 md:grid-cols-2" onSubmit={handleSubmit}>
+      <AppModal
+        isOpen={isFormModalOpen}
+        onClose={cancelEdit}
+        title={editingClassroomId ? "تعديل القاعة / الصف" : "إضافة قاعة / صف"}
+        size="xl"
+      >
+        <form className="grid gap-3 md:grid-cols-2" onSubmit={handleSubmit}>
           {isSuperAdmin && (
             <select
               className="rounded-lg border border-slate-300 px-3 py-2 md:col-span-2"
@@ -464,7 +489,7 @@ export default function ClassroomsPanel() {
             )}
           </div>
         </form>
-      </div>
+      </AppModal>
 
       <div className="rounded-2xl bg-white p-6 shadow">
         <h2 className="text-xl font-semibold text-slate-900">الصفوف / القاعات</h2>
