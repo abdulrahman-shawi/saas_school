@@ -1,15 +1,9 @@
 "use client";
 import { useAuth } from "@/context/AuthContext";
-// import { hasAnyPermission, isAdmin } from "@/lib/utils";
+import { isSuperAdminAcademyCode } from "@/lib/super-admin";
 import { 
-  Home, BarChart2, Users, Settings, ChevronRight, ChevronLeft, 
-  Receipt, Box, FileText, PieChart, ShieldCheck, HelpCircle, LogOut, 
-  Settings2,
-  Users2,
-  RollerCoasterIcon,
+  Home, Building2, ChevronRight, ChevronLeft, LogOut,
   Download,
-  Warehouse,
-  Truck
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -82,19 +76,33 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }: { isCollapsed: boolean;
       </div>
     ), { duration: 5000, position: "top-center" });
   };
-  // سنضيف أقسام القائمة تدريجيا
-  const menuGroups: Array<{ group: string; items: Array<{ icon: any; label: string; href: string }> }> = [];
+  const isSuperAdmin = isSuperAdminAcademyCode(user?.academyCode);
+
+  const menuGroups: Array<{ group: string; items: Array<{ icon: any; label: string; href: string }> }> = [
+    {
+      group: "الرئيسية",
+      items: [{ icon: Home, label: "لوحة التحكم", href: "/dashboard" }],
+    },
+    {
+      group: "الإدارة",
+      items: isSuperAdmin
+        ? [{ icon: Building2, label: "تسجيل الأكاديميات", href: "/dashboard/admin/academies" }]
+        : [],
+    },
+  ].filter((group) => group.items.length > 0);
 
   const handleLogout = async () => {
     try {
-        const response = await fetch('/api/users/logout', {
+      const response = await fetch('/api/auth/logout', {
             method: 'POST',
         });
 
         if (response.ok) {
             // توجيه المستخدم لصفحة تسجيل الدخول
-            window.location.href = "/";
+        window.location.href = "/login";
             toast.success("نراك قريباً!");
+      } else {
+        toast.error("تعذر تسجيل الخروج");
         }
     } catch (error) {
         toast.error("حدث خطأ أثناء محاولة تسجيل الخروج");

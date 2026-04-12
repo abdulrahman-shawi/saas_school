@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "@/lib/session";
+import { isSuperAdminAcademyCode } from "@/lib/super-admin";
 import { NextResponse } from "next/server";
 
 const createAcademySchema = z.object({
@@ -25,6 +26,10 @@ async function assertCanManageAcademies(): Promise<NextResponse | null> {
   }
 
   if (session.role !== UserRole.ACADEMY_ADMIN) {
+    return NextResponse.json({ message: "Forbidden." }, { status: 403 });
+  }
+
+  if (!isSuperAdminAcademyCode(session.academyCode)) {
     return NextResponse.json({ message: "Forbidden." }, { status: 403 });
   }
 

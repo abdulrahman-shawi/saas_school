@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { UserRole } from "@prisma/client";
 import AcademiesPanel from "./academies-panel";
 import { getServerSession } from "@/lib/session";
+import { isSuperAdminAcademyCode } from "@/lib/super-admin";
 
 /**
  * Renders academy management page for admin users.
@@ -15,6 +16,10 @@ export default async function AcademiesManagementPage() {
   }
 
   if (session.role !== UserRole.ACADEMY_ADMIN) {
+    redirect("/dashboard");
+  }
+
+  if (!isSuperAdminAcademyCode(session.academyCode)) {
     redirect("/dashboard");
   }
 

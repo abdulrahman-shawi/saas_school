@@ -16,10 +16,13 @@ export interface UserPermissionMap {
 export interface User {
   id: string;
   username: string;
+  fullName?: string;
   email?: string | null;
   phone?: string | null;
   jobTitle?: string | null;
   avatar?: string | null;
+  academyCode?: string;
+  academyName?: string;
   accountType?: AccountType;
   permission?: UserPermissionMap;
 }

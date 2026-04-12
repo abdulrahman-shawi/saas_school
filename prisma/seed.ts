@@ -75,6 +75,33 @@ async function upsertTenantUser(params: {
  * Seeds a complete academy demo dataset with users, profiles, and billing records.
  */
 async function main(): Promise<void> {
+  const superAdminAcademy = await prisma.academy.upsert({
+    where: { code: "admin-academy" },
+    update: {
+      name: "Super Admin Academy",
+      city: "Cairo",
+      country: "Egypt",
+      timezone: "Africa/Cairo",
+      isActive: true,
+    },
+    create: {
+      code: "admin-academy",
+      name: "Super Admin Academy",
+      city: "Cairo",
+      country: "Egypt",
+      timezone: "Africa/Cairo",
+      isActive: true,
+    },
+  });
+
+  await upsertTenantUser({
+    academyId: superAdminAcademy.id,
+    username: "admin",
+    fullName: "Super Admin",
+    role: UserRole.ACADEMY_ADMIN,
+    email: "admin@admin-academy.com",
+  });
+
   const academy = await prisma.academy.upsert({
     where: { code: "demo-academy" },
     update: {
