@@ -57,6 +57,7 @@ export async function PATCH(
   }
 
   const payload = parsed.data;
+  const normalizedName = payload.name?.trim();
 
   const existing = await prisma.academy.findUnique({
     where: { id: context.params.academyId },
@@ -67,13 +68,33 @@ export async function PATCH(
     return NextResponse.json({ message: "Academy not found." }, { status: 404 });
   }
 
+  if (normalizedName) {
+    const duplicateName = await prisma.academy.findFirst({
+      where: {
+        id: { not: context.params.academyId },
+        name: {
+          equals: normalizedName,
+          mode: "insensitive",
+        },
+      },
+      select: { id: true },
+    });
+
+    if (duplicateName) {
+      return NextResponse.json(
+        { message: "Academy name already exists." },
+        { status: 400 },
+      );
+    }
+  }
+
   try {
     await prisma.$transaction(async (tx) => {
       const updatedAcademy = await tx.academy.update({
         where: { id: context.params.academyId },
         data: {
           code: payload.code?.trim().toLowerCase(),
-          name: payload.name?.trim(),
+          name: normalizedName,
           email: payload.email === "" ? null : payload.email,
           phone: payload.phone || null,
           isActive: payload.isActive,
@@ -112,7 +133,7 @@ export async function PATCH(
   } catch (error) {
     const message =
       error instanceof Error && error.message.includes("Unique constraint")
-        ? "Academy code or username already exists."
+        ? "Academy code, name, or username already exists."
         : "Failed to update academy.";
 
     return NextResponse.json({ message }, { status: 400 });

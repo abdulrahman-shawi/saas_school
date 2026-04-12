@@ -98,6 +98,25 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   const payload = parsed.data;
+  const normalizedName = payload.name.trim();
+
+  const existingAcademyByName = await prisma.academy.findFirst({
+    where: {
+      name: {
+        equals: normalizedName,
+        mode: "insensitive",
+      },
+    },
+    select: { id: true },
+  });
+
+  if (existingAcademyByName) {
+    return NextResponse.json(
+      { message: "Academy name already exists." },
+      { status: 400 },
+    );
+  }
+
   const passwordHash = await bcrypt.hash(payload.password, 10);
 
   try {
@@ -105,7 +124,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       const academy = await tx.academy.create({
         data: {
           code: payload.code.trim().toLowerCase(),
-          name: payload.name.trim(),
+          name: normalizedName,
           email: payload.email || null,
           phone: payload.phone || null,
         },
@@ -132,7 +151,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   } catch (error) {
     const message =
       error instanceof Error && error.message.includes("Unique constraint")
-        ? "Academy code or username already exists."
+        ? "Academy code, name, or username already exists."
         : "Failed to create academy.";
 
     return NextResponse.json({ message }, { status: 400 });

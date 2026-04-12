@@ -82,7 +82,7 @@ enum StaffDepartment {
 model Academy {
   id          String              @id @default(uuid())
   code        String              @unique
-  name        String
+  name        String              @unique
   legalName   String?
   logoUrl     String?
   phone       String?
