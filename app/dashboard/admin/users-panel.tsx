@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { DataTable, type Column, type TableAction } from "@/components/shared/DataTable";
 
 type Role = "ACADEMY_ADMIN" | "TEACHER" | "STUDENT" | "PARENT" | "STAFF";
 type UserStatus = "ACTIVE" | "SUSPENDED" | "PENDING";
@@ -45,6 +46,8 @@ export default function AdminUsersPanel() {
   const [submitting, setSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [roleFilter, setRoleFilter] = useState<"ALL" | Role>("ALL");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 8;
   const [form, setForm] = useState<CreateUserForm>({
     username: "",
     fullName: "",
@@ -61,6 +64,43 @@ export default function AdminUsersPanel() {
 
     return users.filter((user) => user.role === roleFilter);
   }, [roleFilter, users]);
+
+  const columns = useMemo<Column<ManagedUser>[]>(
+    () => [
+      { header: "Name", accessor: "fullName" },
+      { header: "Username", accessor: "username" },
+      { header: "Role", accessor: "role" },
+      { header: "Status", accessor: "status" },
+      {
+        header: "Code",
+        accessor: (item) =>
+          item.studentProfile?.studentCode ??
+          item.teacherProfile?.teacherCode ??
+          item.staffProfile?.staffCode ??
+          "-",
+      },
+    ],
+    [],
+  );
+
+  const actions = useMemo<TableAction<ManagedUser>[]>(
+    () => [
+      {
+        label: "Toggle Status",
+        onClick: (item) => {
+          void toggleUserStatus(item);
+        },
+      },
+      {
+        label: "Delete",
+        onClick: (item) => {
+          void deleteUser(item.id);
+        },
+        variant: "danger",
+      },
+    ],
+    [],
+  );
 
   /**
    * Loads tenant users from admin API.
@@ -82,6 +122,7 @@ export default function AdminUsersPanel() {
       }
 
       setUsers(payload.users);
+      setCurrentPage(1);
     } catch {
       setStatusMessage("Could not fetch users.");
     } finally {
@@ -174,6 +215,10 @@ export default function AdminUsersPanel() {
     void loadUsers();
   }, []);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [roleFilter]);
+
   return (
     <section className="space-y-6">
       <div className="rounded-2xl bg-white p-6 shadow">
@@ -260,61 +305,18 @@ export default function AdminUsersPanel() {
           </p>
         )}
 
-        {loading ? (
-          <p className="mt-4 text-sm text-slate-600">Loading users...</p>
-        ) : (
-          <div className="mt-4 overflow-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 text-slate-500">
-                  <th className="px-2 py-2">Name</th>
-                  <th className="px-2 py-2">Username</th>
-                  <th className="px-2 py-2">Role</th>
-                  <th className="px-2 py-2">Status</th>
-                  <th className="px-2 py-2">Code</th>
-                  <th className="px-2 py-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredUsers.map((user) => {
-                  const code =
-                    user.studentProfile?.studentCode ??
-                    user.teacherProfile?.teacherCode ??
-                    user.staffProfile?.staffCode ??
-                    "-";
-
-                  return (
-                    <tr key={user.id} className="border-b border-slate-100">
-                      <td className="px-2 py-2">{user.fullName}</td>
-                      <td className="px-2 py-2">{user.username}</td>
-                      <td className="px-2 py-2">{user.role}</td>
-                      <td className="px-2 py-2">{user.status}</td>
-                      <td className="px-2 py-2">{code}</td>
-                      <td className="px-2 py-2">
-                        <div className="flex gap-2">
-                          <button
-                            className="rounded bg-amber-500 px-2 py-1 text-xs font-medium text-white"
-                            onClick={() => void toggleUserStatus(user)}
-                            type="button"
-                          >
-                            {user.status === "ACTIVE" ? "Suspend" : "Activate"}
-                          </button>
-                          <button
-                            className="rounded bg-rose-600 px-2 py-1 text-xs font-medium text-white"
-                            onClick={() => void deleteUser(user.id)}
-                            type="button"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <div className="mt-4">
+          <DataTable
+            data={filteredUsers}
+            columns={columns}
+            actions={actions}
+            isLoading={loading}
+            totalCount={filteredUsers.length}
+            pageSize={pageSize}
+            currentPage={currentPage}
+            onPageChange={setCurrentPage}
+          />
+        </div>
       </div>
     </section>
   );

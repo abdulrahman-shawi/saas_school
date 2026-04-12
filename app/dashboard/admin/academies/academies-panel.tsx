@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import { DataTable, type Column, type TableAction } from "@/components/shared/DataTable";
 
 interface AcademyItem {
   id: string;
@@ -41,6 +42,40 @@ export default function AcademiesPanel() {
   const [statusMessage, setStatusMessage] = useState("");
   const [form, setForm] = useState<AcademyForm>(initialForm);
   const [editingAcademyId, setEditingAcademyId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 8;
+
+  const columns = useMemo<Column<AcademyItem>[]>(
+    () => [
+      { header: "Code", accessor: "code" },
+      { header: "Name", accessor: "name" },
+      { header: "Username", accessor: "username" },
+      { header: "Email", accessor: (item) => item.email ?? "-" },
+      { header: "Phone", accessor: (item) => item.phone ?? "-" },
+      {
+        header: "Status",
+        accessor: (item) => (item.isActive ? "ACTIVE" : "INACTIVE"),
+      },
+    ],
+    [],
+  );
+
+  const actions = useMemo<TableAction<AcademyItem>[]>(
+    () => [
+      {
+        label: "Edit",
+        onClick: (item) => startEdit(item),
+      },
+      {
+        label: "Delete",
+        onClick: (item) => {
+          void deleteAcademy(item.id);
+        },
+        variant: "danger",
+      },
+    ],
+    [],
+  );
 
   /**
    * Loads academies list from backend API.
@@ -62,6 +97,7 @@ export default function AcademiesPanel() {
       }
 
       setAcademies(payload.academies);
+      setCurrentPage(1);
     } catch {
       setStatusMessage("Could not fetch academies.");
     } finally {
@@ -264,57 +300,18 @@ export default function AcademiesPanel() {
           </p>
         )}
 
-        {loading ? (
-          <p className="mt-4 text-sm text-slate-600">Loading academies...</p>
-        ) : (
-          <div className="mt-4 overflow-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 text-slate-500">
-                  <th className="px-2 py-2">Code</th>
-                  <th className="px-2 py-2">Name</th>
-                  <th className="px-2 py-2">Username</th>
-                  <th className="px-2 py-2">Email</th>
-                  <th className="px-2 py-2">Phone</th>
-                  <th className="px-2 py-2">Status</th>
-                  <th className="px-2 py-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {academies.map((academy) => (
-                  <tr key={academy.id} className="border-b border-slate-100">
-                    <td className="px-2 py-2">{academy.code}</td>
-                    <td className="px-2 py-2">{academy.name}</td>
-                    <td className="px-2 py-2">{academy.username}</td>
-                    <td className="px-2 py-2">{academy.email ?? "-"}</td>
-                    <td className="px-2 py-2">{academy.phone ?? "-"}</td>
-                    <td className="px-2 py-2">
-                      {academy.isActive ? "ACTIVE" : "INACTIVE"}
-                    </td>
-                    <td className="px-2 py-2">
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          className="rounded bg-amber-500 px-2 py-1 text-xs font-medium text-white"
-                          onClick={() => startEdit(academy)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="rounded bg-rose-600 px-2 py-1 text-xs font-medium text-white"
-                          onClick={() => void deleteAcademy(academy.id)}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <div className="mt-4">
+          <DataTable
+            data={academies}
+            columns={columns}
+            actions={actions}
+            isLoading={loading}
+            totalCount={academies.length}
+            pageSize={pageSize}
+            currentPage={currentPage}
+            onPageChange={setCurrentPage}
+          />
+        </div>
       </div>
     </section>
   );
