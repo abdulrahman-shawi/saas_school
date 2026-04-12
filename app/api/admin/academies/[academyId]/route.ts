@@ -8,6 +8,7 @@ import { NextResponse } from "next/server";
 const updateAcademySchema = z.object({
   code: z.string().min(2).optional(),
   name: z.string().min(2).optional(),
+  username: z.string().min(3).optional(),
   email: z.string().email().optional().or(z.literal("")),
   phone: z.string().optional(),
   password: z.string().min(6).optional().or(z.literal("")),
@@ -92,6 +93,7 @@ export async function PATCH(
         await tx.user.update({
           where: { id: academyAdmin.id },
           data: {
+            username: payload.username?.trim(),
             fullName: payload.name ? `${updatedAcademy.name} Admin` : undefined,
             email: payload.email === "" ? null : payload.email,
             phone: payload.phone || null,
@@ -105,7 +107,7 @@ export async function PATCH(
   } catch (error) {
     const message =
       error instanceof Error && error.message.includes("Unique constraint")
-        ? "Academy code already exists."
+        ? "Academy code or username already exists."
         : "Failed to update academy.";
 
     return NextResponse.json({ message }, { status: 400 });

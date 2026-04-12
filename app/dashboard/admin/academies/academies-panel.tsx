@@ -6,6 +6,7 @@ interface AcademyItem {
   id: string;
   code: string;
   name: string;
+  username: string;
   email: string | null;
   phone: string | null;
   isActive: boolean;
@@ -15,6 +16,7 @@ interface AcademyItem {
 interface AcademyForm {
   code: string;
   name: string;
+  username: string;
   email: string;
   phone: string;
   password: string;
@@ -23,6 +25,7 @@ interface AcademyForm {
 const initialForm: AcademyForm = {
   code: "",
   name: "",
+  username: "",
   email: "",
   phone: "",
   password: "",
@@ -85,6 +88,7 @@ export default function AcademiesPanel() {
         ? {
             code: form.code,
             name: form.name,
+            username: form.username,
             email: form.email,
             phone: form.phone,
             password: form.password,
@@ -123,6 +127,7 @@ export default function AcademiesPanel() {
     setForm({
       code: academy.code,
       name: academy.name,
+      username: academy.username,
       email: academy.email ?? "",
       phone: academy.phone ?? "",
       password: "",
@@ -197,6 +202,13 @@ export default function AcademiesPanel() {
           />
           <input
             className="rounded-lg border border-slate-300 px-3 py-2"
+            placeholder="Username الأدمن"
+            value={form.username}
+            onChange={(event) => setForm((prev) => ({ ...prev, username: event.target.value }))}
+            required
+          />
+          <input
+            className="rounded-lg border border-slate-300 px-3 py-2"
             placeholder="البريد الإلكتروني"
             type="email"
             value={form.email}
@@ -261,6 +273,7 @@ export default function AcademiesPanel() {
                 <tr className="border-b border-slate-200 text-slate-500">
                   <th className="px-2 py-2">Code</th>
                   <th className="px-2 py-2">Name</th>
+                  <th className="px-2 py-2">Username</th>
                   <th className="px-2 py-2">Email</th>
                   <th className="px-2 py-2">Phone</th>
                   <th className="px-2 py-2">Status</th>
@@ -272,6 +285,7 @@ export default function AcademiesPanel() {
                   <tr key={academy.id} className="border-b border-slate-100">
                     <td className="px-2 py-2">{academy.code}</td>
                     <td className="px-2 py-2">{academy.name}</td>
+                    <td className="px-2 py-2">{academy.username}</td>
                     <td className="px-2 py-2">{academy.email ?? "-"}</td>
                     <td className="px-2 py-2">{academy.phone ?? "-"}</td>
                     <td className="px-2 py-2">

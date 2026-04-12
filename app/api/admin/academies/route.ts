@@ -8,6 +8,7 @@ import { NextResponse } from "next/server";
 const createAcademySchema = z.object({
   code: z.string().min(2),
   name: z.string().min(2),
+  username: z.string().min(3),
   email: z.string().email().optional().or(z.literal("")),
   phone: z.string().optional(),
   password: z.string().min(6),
@@ -50,10 +51,29 @@ export async function GET(): Promise<NextResponse> {
       phone: true,
       isActive: true,
       createdAt: true,
+      users: {
+        where: { role: UserRole.ACADEMY_ADMIN },
+        orderBy: { createdAt: "asc" },
+        take: 1,
+        select: {
+          username: true,
+        },
+      },
     },
   });
 
-  return NextResponse.json({ academies });
+  return NextResponse.json({
+    academies: academies.map((academy) => ({
+      id: academy.id,
+      code: academy.code,
+      name: academy.name,
+      email: academy.email,
+      phone: academy.phone,
+      isActive: academy.isActive,
+      createdAt: academy.createdAt,
+      username: academy.users[0]?.username ?? "admin",
+    })),
+  });
 }
 
 /**
@@ -89,7 +109,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       await tx.user.create({
         data: {
           academyId: academy.id,
-          username: "admin",
+          username: payload.username.trim(),
           fullName: `${academy.name} Admin`,
           passwordHash,
           role: UserRole.ACADEMY_ADMIN,
@@ -107,7 +127,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   } catch (error) {
     const message =
       error instanceof Error && error.message.includes("Unique constraint")
-        ? "Academy code already exists."
+        ? "Academy code or username already exists."
         : "Failed to create academy.";
 
     return NextResponse.json({ message }, { status: 400 });
