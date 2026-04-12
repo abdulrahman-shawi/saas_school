@@ -161,12 +161,8 @@ export default function ClassroomsPanel() {
       academies?: Array<{ id: string; code: string; name: string }>;
     };
 
-    if (response.ok && payload.academies) {
+      if (response.ok && payload.academies) {
       setAcademies(payload.academies);
-
-      if (!selectedAcademyId && payload.academies.length > 0) {
-        setSelectedAcademyId(payload.academies[0].id);
-      }
     }
   }
 
@@ -249,6 +245,11 @@ export default function ClassroomsPanel() {
         capacity: form.capacity === "" ? null : Number(form.capacity),
         teacherIds: form.teacherIds,
       };
+
+      if (isSuperAdmin && !selectedAcademyId) {
+        setStatusMessage("Please select an academy before saving.");
+        return;
+      }
 
       const response = await fetch(endpoint, {
         method,
@@ -384,9 +385,8 @@ export default function ClassroomsPanel() {
               className="rounded-lg border border-slate-300 px-3 py-2 md:col-span-2"
               value={selectedAcademyId}
               onChange={(event) => setSelectedAcademyId(event.target.value)}
-              required
             >
-              {academies.length === 0 && <option value="">Select academy</option>}
+              <option value="">All academies (view only)</option>
               {academies.map((academy) => (
                 <option key={academy.id} value={academy.id}>
                   {academy.name} ({academy.code})

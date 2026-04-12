@@ -15,13 +15,16 @@ const createClassroomSchema = z.object({
 
 interface AccessScope {
   isSuperAdmin: boolean;
-  academyId: string;
+  academyId: string | null;
 }
 
 /**
  * Returns access scope for classroom management endpoints.
  */
-async function resolveScope(academyIdFromQuery?: string | null): Promise<AccessScope | NextResponse> {
+async function resolveScope(
+  academyIdFromQuery?: string | null,
+  requiredForWrite = false,
+): Promise<AccessScope | NextResponse> {
   const session = await getServerSession();
 
   if (!session) {
@@ -37,14 +40,14 @@ async function resolveScope(academyIdFromQuery?: string | null): Promise<AccessS
   if (isSuperAdmin) {
     const academyId = academyIdFromQuery?.trim() || "";
 
-    if (!academyId) {
+    if (requiredForWrite && !academyId) {
       return NextResponse.json(
         { message: "academyId is required for super admin requests." },
         { status: 400 },
       );
     }
 
-    return { isSuperAdmin: true, academyId };
+    return { isSuperAdmin: true, academyId: academyId || null };
   }
 
   return { isSuperAdmin: false, academyId: session.academyId };
@@ -62,7 +65,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   const classrooms = await prisma.classroom.findMany({
     where: {
-      academyId: scopeResult.academyId,
+      ...(scopeResult.academyId ? { academyId: scopeResult.academyId } : {}),
     },
     orderBy: { createdAt: "desc" },
     include: {
@@ -122,14 +125,23 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   const payload = payloadResult.data;
-  const scopeResult = await resolveScope(payload.academyId ?? null);
+  const scopeResult = await resolveScope(payload.academyId ?? null, true);
 
   if (scopeResult instanceof NextResponse) {
     return scopeResult;
   }
 
+  if (!scopeResult.academyId) {
+    return NextResponse.json(
+      { message: "academyId is required." },
+      { status: 400 },
+    );
+  }
+
+  const targetAcademyId = scopeResult.academyId;
+
   const academy = await prisma.academy.findUnique({
-    where: { id: scopeResult.academyId },
+    where: { id: targetAcademyId },
     select: { id: true },
   });
 
@@ -140,7 +152,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   if (payload.teacherIds.length > 0) {
     const teacherCount = await prisma.teacherProfile.count({
       where: {
-        academyId: scopeResult.academyId,
+        academyId: targetAcademyId,
         id: { in: payload.teacherIds },
       },
     });
@@ -157,7 +169,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     const classroom = await prisma.$transaction(async (tx) => {
       const createdClassroom = await tx.classroom.create({
         data: {
-          academyId: scopeResult.academyId,
+          academyId: targetAcademyId,
           code: payload.code.trim().toUpperCase(),
           name: payload.name.trim(),
           capacity: payload.capacity ?? null,
@@ -168,7 +180,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       if (payload.teacherIds.length > 0) {
         await tx.classroomTeacher.createMany({
           data: payload.teacherIds.map((teacherId) => ({
-            academyId: scopeResult.academyId,
+            academyId: targetAcademyId,
             classroomId: createdClassroom.id,
             teacherId,
           })),
