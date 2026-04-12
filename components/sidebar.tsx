@@ -2,7 +2,7 @@
 import { useAuth } from "@/context/AuthContext";
 import { isSuperAdminAcademyCode } from "@/lib/super-admin";
 import { 
-  Home, Building2, School, ChevronRight, ChevronLeft, LogOut,
+  Home, Building2, School, UserSquare2, ChevronRight, ChevronLeft, LogOut,
   Download,
 } from "lucide-react";
 import Link from "next/link";
@@ -87,6 +87,9 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }: { isCollapsed: boolean;
     {
       group: "الإدارة",
       items: [
+        ...(isAcademyAdmin
+          ? [{ icon: UserSquare2, label: "المدرسين", href: "/dashboard/admin/teachers" }]
+          : []),
         ...(isAcademyAdmin
           ? [{ icon: School, label: "الصفوف والقاعات والمدرسين", href: "/dashboard/admin/classrooms" }]
           : []),

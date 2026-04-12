@@ -206,7 +206,18 @@ model TeacherProfile {
   userId         String    @unique
   branchId       String?
   teacherCode    String
+  firstName      String?
+  lastName       String?
+  gender         Gender?
+  dateOfBirth    DateTime?
   specialization String?
+  maritalStatus  String?
+  profilePicUrl  String?
+  currentAddress String?
+  permanentAddress String?
+  qualification  String?
+  workExperience String?
+  note           String?
   hireDate       DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
