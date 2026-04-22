@@ -8,9 +8,11 @@ Create a `.env.local` file and configure the required variables:
 DATABASE_URL="postgresql://username:password@host:5432/database?schema=public"
 JWT_SECRET="replace-with-a-long-random-secret"
 BLOB_READ_WRITE_TOKEN="your-vercel-blob-token"
+BLOB_ACCESS="private"
 ```
 
 Teacher image uploads use Vercel Blob. If `BLOB_READ_WRITE_TOKEN` is missing, the upload API will reject the request.
+If your Blob store is private, keep `BLOB_ACCESS="private"`. The app will stream images through an internal API route so they still display correctly.
 
 ## Getting Started
 

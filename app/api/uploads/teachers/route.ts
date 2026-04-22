@@ -3,6 +3,8 @@ import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/session";
 
+const blobAccess = process.env.BLOB_ACCESS === "public" ? "public" : "private";
+
 /**
  * Uploads teacher profile image to Vercel Blob and returns public URL.
  */
@@ -45,13 +47,20 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     const blob = await put(`teachers/${Date.now()}-${file.name}`, file, {
-      access: "public",
+      access: blobAccess,
       addRandomSuffix: true,
     });
 
+    const origin = new URL(request.url).origin;
+    const displayUrl = blobAccess === "private"
+      ? `${origin}/api/uploads/teachers/file?url=${encodeURIComponent(blob.url)}`
+      : blob.url;
+
     return NextResponse.json({
       message: "Uploaded successfully.",
-      url: blob.url,
+      url: displayUrl,
+      blobUrl: blob.url,
+      access: blobAccess,
     });
   } catch (error) {
     const details = error instanceof Error ? error.message : "Unknown Vercel Blob error.";
