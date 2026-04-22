@@ -88,8 +88,8 @@ export default function ClassroomsPanel() {
   const [classroomTeacherLinks, setClassroomTeacherLinks] = useState<ClassroomTeacherLink[]>([]);
   const [loadingLinks, setLoadingLinks] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
-  const [selectedTeacherId, setSelectedTeacherId] = useState<string>("");
-  const [selectedClassroomIds, setSelectedClassroomIds] = useState<string[]>([]);
+  const [selectedClassroomId, setSelectedClassroomId] = useState<string>("");
+  const [selectedTeacherIds, setSelectedTeacherIds] = useState<string[]>([]);
   const [assigningTeacher, setAssigningTeacher] = useState(false);
 
   const classroomColumns = useMemo<Column<ClassroomItem>[]>(
@@ -393,8 +393,8 @@ export default function ClassroomsPanel() {
    * Opens teacher assignment modal.
    */
   function openAssignModal(): void {
-    setSelectedTeacherId("");
-    setSelectedClassroomIds([]);
+    setSelectedClassroomId("");
+    setSelectedTeacherIds([]);
     setStatusMessage("");
     setIsAssignModalOpen(true);
   }
@@ -403,40 +403,48 @@ export default function ClassroomsPanel() {
    * Closes teacher assignment modal.
    */
   function closeAssignModal(): void {
-    setSelectedTeacherId("");
-    setSelectedClassroomIds([]);
+    setSelectedClassroomId("");
+    setSelectedTeacherIds([]);
     setIsAssignModalOpen(false);
   }
 
   /**
-   * Assigns selected teacher to selected classrooms.
+   * Assigns selected classroom to selected teachers.
    */
   async function handleAssignTeacher(): Promise<void> {
-    if (!selectedTeacherId || selectedClassroomIds.length === 0) {
-      setStatusMessage("Please select teacher and at least one classroom.");
+    if (!selectedClassroomId || selectedTeacherIds.length === 0) {
+      setStatusMessage("Please select one classroom and at least one teacher.");
       return;
     }
 
     setAssigningTeacher(true);
 
     try {
-      const response = await fetch("/api/admin/classrooms/assign-teacher", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          teacherId: selectedTeacherId,
-          classroomIds: selectedClassroomIds,
+      const responses = await Promise.all(
+        selectedTeacherIds.map(async (teacherId) => {
+          const response = await fetch("/api/admin/classrooms/assign-teacher", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              teacherId,
+              classroomIds: [selectedClassroomId],
+            }),
+          });
+
+          const payload = (await response.json()) as { message?: string; count?: number };
+          return { ok: response.ok, payload };
         }),
-      });
+      );
 
-      const payload = (await response.json()) as { message?: string; count?: number };
+      const failed = responses.find((item) => !item.ok);
 
-      if (!response.ok) {
-        setStatusMessage(payload.message ?? "Failed to assign teacher.");
+      if (failed) {
+        setStatusMessage(failed.payload.message ?? "Failed to assign classroom.");
         return;
       }
 
-      setStatusMessage(`Teacher assigned to ${payload.count} classroom(s).`);
+      const linkedCount = responses.reduce((sum, item) => sum + (item.payload.count ?? 0), 0);
+      setStatusMessage(`Classroom assigned to ${selectedTeacherIds.length} teacher(s). New links: ${linkedCount}.`);
       closeAssignModal();
       await loadClassroomTeacherLinks();
     } catch {
@@ -574,7 +582,7 @@ export default function ClassroomsPanel() {
             onClick={openAssignModal}
             className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white"
           >
-            ربط استاذ بصفوف
+            ربط صف بمدرسين
           </button>
         </div>
 
@@ -594,47 +602,47 @@ export default function ClassroomsPanel() {
       <AppModal
         isOpen={isAssignModalOpen}
         onClose={closeAssignModal}
-        title="ربط الأستاذ بالصفوف"
+        title="ربط الصف بالمدرسين"
         size="lg"
       >
         <div className="space-y-4">
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">اختر الأستاذ</label>
+            <label className="mb-2 block text-sm font-medium text-slate-700">اختر الصف</label>
             <select
               className="w-full rounded-lg border border-slate-300 px-3 py-2"
-              value={selectedTeacherId}
-              onChange={(event) => setSelectedTeacherId(event.target.value)}
+              value={selectedClassroomId}
+              onChange={(event) => setSelectedClassroomId(event.target.value)}
             >
-              <option value="">-- اختر أستاذ --</option>
-              {teachers.map((teacher) => (
-                <option key={teacher.id} value={teacher.id}>
-                  {teacher.fullName} ({teacher.teacherCode})
+              <option value="">-- اختر صف --</option>
+              {classrooms.map((classroom) => (
+                <option key={classroom.id} value={classroom.id}>
+                  {classroom.name} ({classroom.code})
                 </option>
               ))}
             </select>
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">اختر الصفوف</label>
+            <label className="mb-2 block text-sm font-medium text-slate-700">اختر المدرسين</label>
             <div className="max-h-48 space-y-2 overflow-y-auto rounded-lg border border-slate-300 p-3">
-              {classrooms.length === 0 ? (
-                <p className="text-sm text-slate-500">لا توجد صفوف متاحة</p>
+              {teachers.length === 0 ? (
+                <p className="text-sm text-slate-500">لا يوجد مدرسون متاحون</p>
               ) : (
-                classrooms.map((classroom) => (
-                  <label key={classroom.id} className="flex items-center gap-2 text-sm text-slate-700">
+                teachers.map((teacher) => (
+                  <label key={teacher.id} className="flex items-center gap-2 text-sm text-slate-700">
                     <input
                       type="checkbox"
-                      checked={selectedClassroomIds.includes(classroom.id)}
+                      checked={selectedTeacherIds.includes(teacher.id)}
                       onChange={(event) => {
                         if (event.target.checked) {
-                          setSelectedClassroomIds((prev) => [...prev, classroom.id]);
+                          setSelectedTeacherIds((prev) => [...prev, teacher.id]);
                         } else {
-                          setSelectedClassroomIds((prev) => prev.filter((id) => id !== classroom.id));
+                          setSelectedTeacherIds((prev) => prev.filter((id) => id !== teacher.id));
                         }
                       }}
                     />
                     <span>
-                      {classroom.name} ({classroom.code})
+                      {teacher.fullName} ({teacher.teacherCode})
                     </span>
                   </label>
                 ))
