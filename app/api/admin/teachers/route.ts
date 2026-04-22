@@ -62,10 +62,20 @@ async function resolveScope(academyIdFromRequest?: string | null): Promise<Scope
 }
 
 /**
+ * Builds academy prefix from academy name/code first character.
+ */
+function buildAcademyPrefix(academyName: string, academyCode: string): string {
+  const source = `${academyName}${academyCode}`.trim();
+  const firstLetter = source.match(/[A-Za-z\u0600-\u06FF]/)?.[0] ?? "X";
+
+  return firstLetter.toUpperCase();
+}
+
+/**
  * Builds teacher code in academy-scoped sequence.
  */
-function buildTeacherCode(count: number): string {
-  return `T-${String(count + 1).padStart(3, "0")}`;
+function buildTeacherCode(academyPrefix: string, count: number): string {
+  return `${academyPrefix}-T-${String(count + 1).padStart(3, "0")}`;
 }
 
 /**
@@ -162,7 +172,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   const academy = await prisma.academy.findUnique({
     where: { id: scopeResult.academyId },
-    select: { id: true },
+    select: { id: true, name: true, code: true },
   });
 
   if (!academy) {
@@ -176,6 +186,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       const count = await tx.teacherProfile.count({
         where: { academyId: scopeResult.academyId },
       });
+      const academyPrefix = buildAcademyPrefix(academy.name, academy.code);
 
       const fullName = `${payload.firstName.trim()} ${payload.lastName.trim()}`;
 
@@ -197,7 +208,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         data: {
           academyId: scopeResult.academyId,
           userId: user.id,
-          teacherCode: buildTeacherCode(count),
+          teacherCode: buildTeacherCode(academyPrefix, count),
           firstName: payload.firstName.trim(),
           lastName: payload.lastName.trim(),
           gender: payload.gender ?? null,

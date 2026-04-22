@@ -62,6 +62,8 @@ interface TeacherForm {
   status: Status;
 }
 
+type MaritalStatus = "" | "SINGLE" | "MARRIED" | "DIVORCED" | "WIDOWED";
+
 const initialForm: TeacherForm = {
   academyId: "",
   firstName: "",
@@ -93,6 +95,24 @@ function showStatus(message: string, type: "success" | "error" = "success"): voi
   }
 
   toast.error(message);
+}
+
+/**
+ * Converts stored marital status value to supported select values.
+ */
+function toMaritalStatusValue(value: string | null): MaritalStatus {
+  const normalized = value?.toUpperCase().trim();
+
+  if (
+    normalized === "SINGLE"
+    || normalized === "MARRIED"
+    || normalized === "DIVORCED"
+    || normalized === "WIDOWED"
+  ) {
+    return normalized;
+  }
+
+  return "";
 }
 
 /**
@@ -191,9 +211,15 @@ export default function TeachersPanel() {
     setLoading(true);
 
     try {
-      const query = isSuperAdmin && selectedAcademyId
-        ? `?academyId=${selectedAcademyId}`
-        : "";
+      const params = new URLSearchParams();
+
+      if (isSuperAdmin && selectedAcademyId) {
+        params.set("academyId", selectedAcademyId);
+      }
+
+      // Cache-busting to guarantee fresh rows after create/update/delete.
+      params.set("_t", Date.now().toString());
+      const query = params.toString() ? `?${params.toString()}` : "";
       const response = await fetch(`/api/admin/teachers${query}`);
       const payload = (await response.json()) as {
         teachers?: TeacherItem[];
@@ -327,7 +353,7 @@ export default function TeachersPanel() {
       gender: teacher.gender ?? "",
       dateOfBirth: teacher.dateOfBirth ? teacher.dateOfBirth.slice(0, 10) : "",
       dateOfJoining: teacher.dateOfJoining ? teacher.dateOfJoining.slice(0, 10) : "",
-      maritalStatus: teacher.maritalStatus ?? "",
+      maritalStatus: toMaritalStatusValue(teacher.maritalStatus),
       profilePicUrl: teacher.profilePicUrl ?? "",
       currentAddress: teacher.currentAddress ?? "",
       permanentAddress: teacher.permanentAddress ?? "",
@@ -493,7 +519,17 @@ export default function TeachersPanel() {
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700">الحالة الاجتماعية</label>
-            <input className="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="Marital Status" value={form.maritalStatus} onChange={(event) => setForm((prev) => ({ ...prev, maritalStatus: event.target.value }))} />
+            <select
+              className="w-full rounded-lg border border-slate-300 px-3 py-2"
+              value={form.maritalStatus}
+              onChange={(event) => setForm((prev) => ({ ...prev, maritalStatus: event.target.value as MaritalStatus }))}
+            >
+              <option value="">اختر الحالة الاجتماعية</option>
+              <option value="SINGLE">أعزب / عزباء</option>
+              <option value="MARRIED">متزوج / متزوجة</option>
+              <option value="DIVORCED">مطلق / مطلقة</option>
+              <option value="WIDOWED">أرمل / أرملة</option>
+            </select>
           </div>
 
           <div className="md:col-span-2">
