@@ -53,9 +53,15 @@ export async function POST(request: Request): Promise<NextResponse> {
       message: "Uploaded successfully.",
       url: blob.url,
     });
-  } catch {
+  } catch (error) {
+    const details = error instanceof Error ? error.message : "Unknown Vercel Blob error.";
+
+    console.error("Teacher image upload failed:", details);
+
     return NextResponse.json(
-      { message: "Failed to upload image to Vercel Blob." },
+      {
+        message: `Failed to upload image to Vercel Blob. ${details}`,
+      },
       { status: 500 },
     );
   }
