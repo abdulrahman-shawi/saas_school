@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { DataTable, type Column, type TableAction } from "@/components/shared/DataTable";
@@ -105,7 +105,7 @@ export default function ClassroomsPanel() {
           header: "Teachers",
           accessor: (item) =>
             item.teachers.length > 0
-              ? item.teachers.map((teacher) => teacher.fullName).join("، ")
+              ? item.teachers.map((teacher) => teacher.fullName).join("طŒ ")
               : "-",
         },
         {
@@ -129,15 +129,15 @@ export default function ClassroomsPanel() {
   const linkColumns = useMemo<Column<ClassroomTeacherLink>[]>(
     () => {
       const columns: Column<ClassroomTeacherLink>[] = [
-        { header: "كود الصف", accessor: "classroomCode" },
-        { header: "اسم الصف", accessor: "classroomName" },
-        { header: "كود المدرس", accessor: "teacherCode" },
-        { header: "اسم المدرس", accessor: "teacherName" },
+        { header: "ظƒظˆط¯ ط§ظ„طµظپ", accessor: "classroomCode" },
+        { header: "ط§ط³ظ… ط§ظ„طµظپ", accessor: "classroomName" },
+        { header: "ظƒظˆط¯ ط§ظ„ظ…ط¯ط±ط³", accessor: "teacherCode" },
+        { header: "ط§ط³ظ… ط§ظ„ظ…ط¯ط±ط³", accessor: "teacherName" },
       ];
 
       if (isSuperAdmin) {
         columns.unshift({
-          header: "الأكاديمية",
+          header: "ط§ظ„ط£ظƒط§ط¯ظٹظ…ظٹط©",
           accessor: (item) => `${item.academyName} (${item.academyCode})`,
         });
       }
@@ -452,7 +452,7 @@ export default function ClassroomsPanel() {
     }
 
     void Promise.all([loadClassrooms(), loadTeachers(), loadClassroomTeacherLinks()]);
-  }, [isSuperAdmin, selectedAcademyId, loadClassrooms, loadTeachers, loadClassroomTeacherLinks]);
+  }, [isSuperAdmin, selectedAcademyId]);
 
   useEffect(() => {
     if (!isSuperAdmin) {
@@ -470,13 +470,13 @@ export default function ClassroomsPanel() {
     <section className="space-y-6">
       <div className="rounded-2xl bg-white p-6 shadow">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-xl font-semibold text-slate-900">إدارة الصفوف / القاعات</h2>
+          <h2 className="text-xl font-semibold text-slate-900">ط¥ط¯ط§ط±ط© ط§ظ„طµظپظˆظپ / ط§ظ„ظ‚ط§ط¹ط§طھ</h2>
           <button
             type="button"
             onClick={openCreateModal}
             className="rounded-lg bg-emerald-600 px-4 py-2 font-medium text-white"
           >
-            إضافة قاعة / صف
+            ط¥ط¶ط§ظپط© ظ‚ط§ط¹ط© / طµظپ
           </button>
         </div>
       </div>
@@ -484,7 +484,7 @@ export default function ClassroomsPanel() {
       <AppModal
         isOpen={isFormModalOpen}
         onClose={cancelEdit}
-        title={editingClassroomId ? "تعديل القاعة / الصف" : "إضافة قاعة / صف"}
+        title={editingClassroomId ? "طھط¹ط¯ظٹظ„ ط§ظ„ظ‚ط§ط¹ط© / ط§ظ„طµظپ" : "ط¥ط¶ط§ظپط© ظ‚ط§ط¹ط© / طµظپ"}
         size="xl"
       >
         <form className="grid gap-3 md:grid-cols-2" onSubmit={handleSubmit}>
@@ -528,8 +528,8 @@ export default function ClassroomsPanel() {
               {submitting
                 ? "Saving..."
                 : editingClassroomId
-                  ? "حفظ التعديلات"
-                  : "إضافة القاعة"}
+                  ? "ط­ظپط¸ ط§ظ„طھط¹ط¯ظٹظ„ط§طھ"
+                  : "ط¥ط¶ط§ظپط© ط§ظ„ظ‚ط§ط¹ط©"}
             </button>
 
             {editingClassroomId && (
@@ -538,7 +538,7 @@ export default function ClassroomsPanel() {
                 onClick={cancelEdit}
                 className="rounded-lg border border-slate-300 px-4 py-2 font-medium text-slate-700"
               >
-                إلغاء
+                ط¥ظ„ط؛ط§ط،
               </button>
             )}
           </div>
@@ -546,7 +546,7 @@ export default function ClassroomsPanel() {
       </AppModal>
 
       <div className="rounded-2xl bg-white p-6 shadow">
-        <h2 className="text-xl font-semibold text-slate-900">الصفوف / القاعات</h2>
+        <h2 className="text-xl font-semibold text-slate-900">ط§ظ„طµظپظˆظپ / ط§ظ„ظ‚ط§ط¹ط§طھ</h2>
         {statusMessage && (
           <p className="mt-3 rounded bg-slate-100 px-3 py-2 text-sm text-slate-700">
             {statusMessage}
@@ -569,13 +569,13 @@ export default function ClassroomsPanel() {
 
       <div className="rounded-2xl bg-white p-6 shadow">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-xl font-semibold text-slate-900">ربط الصفوف مع المدرسين</h2>
+          <h2 className="text-xl font-semibold text-slate-900">ط±ط¨ط· ط§ظ„طµظپظˆظپ ظ…ط¹ ط§ظ„ظ…ط¯ط±ط³ظٹظ†</h2>
           <button
             type="button"
             onClick={openAssignModal}
             className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white"
           >
-            ربط استاذ بصفوف
+            ط±ط¨ط· ط§ط³طھط§ط° ط¨طµظپظˆظپ
           </button>
         </div>
 
@@ -595,18 +595,18 @@ export default function ClassroomsPanel() {
       <AppModal
         isOpen={isAssignModalOpen}
         onClose={closeAssignModal}
-        title="ربط الأستاذ بالصفوف"
+        title="ط±ط¨ط· ط§ظ„ط£ط³طھط§ط° ط¨ط§ظ„طµظپظˆظپ"
         size="lg"
       >
         <div className="space-y-4">
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">اختر الأستاذ</label>
+            <label className="mb-2 block text-sm font-medium text-slate-700">ط§ط®طھط± ط§ظ„ط£ط³طھط§ط°</label>
             <select
               className="w-full rounded-lg border border-slate-300 px-3 py-2"
               value={selectedTeacherId}
               onChange={(event) => setSelectedTeacherId(event.target.value)}
             >
-              <option value="">-- اختر أستاذ --</option>
+              <option value="">-- ط§ط®طھط± ط£ط³طھط§ط° --</option>
               {teachers.map((teacher) => (
                 <option key={teacher.id} value={teacher.id}>
                   {teacher.fullName} ({teacher.teacherCode})
@@ -616,10 +616,10 @@ export default function ClassroomsPanel() {
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">اختر الصفوف</label>
+            <label className="mb-2 block text-sm font-medium text-slate-700">ط§ط®طھط± ط§ظ„طµظپظˆظپ</label>
             <div className="max-h-48 space-y-2 overflow-y-auto rounded-lg border border-slate-300 p-3">
               {classrooms.length === 0 ? (
-                <p className="text-sm text-slate-500">لا توجد صفوف متاحة</p>
+                <p className="text-sm text-slate-500">ظ„ط§ طھظˆط¬ط¯ طµظپظˆظپ ظ…طھط§ط­ط©</p>
               ) : (
                 classrooms.map((classroom) => (
                   <label key={classroom.id} className="flex items-center gap-2 text-sm text-slate-700">
@@ -649,13 +649,13 @@ export default function ClassroomsPanel() {
               disabled={assigningTeacher}
               className="flex-1 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white disabled:opacity-60"
             >
-              {assigningTeacher ? "جاري الربط..." : "ربط"}
+              {assigningTeacher ? "ط¬ط§ط±ظٹ ط§ظ„ط±ط¨ط·..." : "ط±ط¨ط·"}
             </button>
             <button
               onClick={closeAssignModal}
               className="rounded-lg border border-slate-300 px-4 py-2 font-medium text-slate-700"
             >
-              إلغاء
+              ط¥ظ„ط؛ط§ط،
             </button>
           </div>
         </div>
@@ -663,3 +663,4 @@ export default function ClassroomsPanel() {
     </section>
   );
 }
+
