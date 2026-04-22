@@ -52,6 +52,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   const isSuperAdmin = isSuperAdminAcademyCode(session.academyCode);
   const academyIdQuery = request.nextUrl.searchParams.get("academyId")?.trim();
+  const peerUserId = request.nextUrl.searchParams.get("peerUserId")?.trim();
   const academyId = isSuperAdmin ? academyIdQuery || undefined : session.academyId;
 
   const users = await prisma.user.findMany({
@@ -70,8 +71,19 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   });
 
   const messages = await prisma.message.findMany({
-    where: academyId ? { academyId } : {},
-    orderBy: { createdAt: "desc" },
+    where: {
+      ...(academyId ? { academyId } : {}),
+      ...(peerUserId
+        ? {
+            OR: [
+              { senderUserId: session.sub, receiverUserId: peerUserId },
+              { senderUserId: peerUserId, receiverUserId: session.sub },
+            ],
+          }
+        : {}),
+    },
+    orderBy: { createdAt: "asc" },
+    take: 300,
     include: {
       academy: { select: { id: true, code: true, name: true } },
       sender: { select: { id: true, fullName: true, role: true, username: true } },
@@ -109,25 +121,48 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   const payload = parsed.data;
   const scope = await resolveScope(payload.academyId ?? null);
+  const session = await getServerSession();
 
   if (scope instanceof NextResponse) {
     return scope;
+  }
+
+  if (!session) {
+    return NextResponse.json({ message: "Unauthorized." }, { status: 401 });
+  }
+
+  if (payload.senderUserId !== session.sub) {
+    return NextResponse.json({ message: "Sender must be current authenticated user." }, { status: 403 });
   }
 
   if (payload.senderUserId === payload.receiverUserId) {
     return NextResponse.json({ message: "Sender and receiver must be different." }, { status: 400 });
   }
 
-  const participants = await prisma.user.findMany({
+  const receiver = await prisma.user.findFirst({
     where: {
+      id: payload.receiverUserId,
       academyId: scope.academyId,
-      id: { in: [payload.senderUserId, payload.receiverUserId] },
     },
     select: { id: true },
   });
 
-  if (participants.length !== 2) {
-    return NextResponse.json({ message: "Sender or receiver not found in this academy." }, { status: 404 });
+  if (!receiver) {
+    return NextResponse.json({ message: "Receiver not found in this academy." }, { status: 404 });
+  }
+
+  if (!scope.isSuperAdmin) {
+    const sender = await prisma.user.findFirst({
+      where: {
+        id: payload.senderUserId,
+        academyId: scope.academyId,
+      },
+      select: { id: true },
+    });
+
+    if (!sender) {
+      return NextResponse.json({ message: "Sender not found in this academy." }, { status: 404 });
+    }
   }
 
   const message = await prisma.message.create({

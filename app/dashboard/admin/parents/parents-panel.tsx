@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { ChatModal } from "@/components/shared/chat-modal";
 import { DataTable, type Column, type TableAction } from "@/components/shared/DataTable";
 import { AppModal } from "@/components/ui/app-modal";
 import { useAuth } from "@/context/AuthContext";
@@ -118,6 +119,8 @@ export default function ParentsPanel() {
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
   const [profileImagePreview, setProfileImagePreview] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [isChatModalOpen, setIsChatModalOpen] = useState(false);
+  const [chatPeer, setChatPeer] = useState<{ id: string; name: string } | null>(null);
 
   const columns = useMemo<Column<ParentItem>[]>(() => {
     const base: Column<ParentItem>[] = [
@@ -153,10 +156,24 @@ export default function ParentsPanel() {
   }, [isSuperAdmin]);
 
   const actions = useMemo<TableAction<ParentItem>[]>(() => [
+    { label: "مراسلة", onClick: (item) => openChat(item) },
     { label: "ربط الطلاب", onClick: (item) => openLinkModal(item) },
     { label: "تعديل", onClick: (item) => startEdit(item) },
     { label: "حذف", onClick: (item) => void deleteParent(item.id), variant: "danger" },
-  ], []);
+  ], [user?.id]);
+
+  /**
+   * Opens chat modal for selected parent.
+   */
+  function openChat(parent: ParentItem): void {
+    if (!user?.id) {
+      showStatus("تعذر تحديد المستخدم الحالي.", "error");
+      return;
+    }
+
+    setChatPeer({ id: parent.id, name: parent.fullName });
+    setIsChatModalOpen(true);
+  }
 
   function openCreateModal(): void {
     setEditingParentId(null);
@@ -502,6 +519,15 @@ export default function ParentsPanel() {
           </div>
         </div>
       </AppModal>
+
+      <ChatModal
+        isOpen={isChatModalOpen}
+        onClose={() => setIsChatModalOpen(false)}
+        currentUserId={user?.id ?? ""}
+        peerUserId={chatPeer?.id ?? ""}
+        peerName={chatPeer?.name ?? ""}
+        academyId={isSuperAdmin ? selectedAcademyId || undefined : undefined}
+      />
 
       <div className="rounded-2xl bg-white p-6 shadow">
         <h2 className="text-xl font-semibold text-slate-900">جدول الأبوين</h2>

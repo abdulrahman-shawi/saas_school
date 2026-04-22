@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { ChatModal } from "@/components/shared/chat-modal";
 import { DataTable, type Column, type TableAction } from "@/components/shared/DataTable";
 import { AppModal } from "@/components/ui/app-modal";
 import { useAuth } from "@/context/AuthContext";
@@ -135,6 +136,8 @@ export default function TeachersPanel() {
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
   const [profileImagePreview, setProfileImagePreview] = useState<string>("");
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [isChatModalOpen, setIsChatModalOpen] = useState(false);
+  const [chatPeer, setChatPeer] = useState<{ id: string; name: string } | null>(null);
 
   function openCreateModal(): void {
     setEditingTeacherId(null);
@@ -172,6 +175,10 @@ export default function TeachersPanel() {
   const actions = useMemo<TableAction<TeacherItem>[]>(
     () => [
       {
+        label: "مراسلة",
+        onClick: (item) => openChat(item),
+      },
+      {
         label: "تعديل",
         onClick: (item) => startEdit(item),
       },
@@ -183,8 +190,21 @@ export default function TeachersPanel() {
         variant: "danger",
       },
     ],
-    [],
+    [user?.id],
   );
+
+  /**
+   * Opens chat modal for selected teacher.
+   */
+  function openChat(teacher: TeacherItem): void {
+    if (!user?.id) {
+      showStatus("تعذر تحديد المستخدم الحالي.", "error");
+      return;
+    }
+
+    setChatPeer({ id: teacher.id, name: teacher.fullName });
+    setIsChatModalOpen(true);
+  }
 
   /**
    * Loads academies for super admin selector.
@@ -584,6 +604,15 @@ export default function TeachersPanel() {
           </div>
         </form>
       </AppModal>
+
+      <ChatModal
+        isOpen={isChatModalOpen}
+        onClose={() => setIsChatModalOpen(false)}
+        currentUserId={user?.id ?? ""}
+        peerUserId={chatPeer?.id ?? ""}
+        peerName={chatPeer?.name ?? ""}
+        academyId={isSuperAdmin ? selectedAcademyId || undefined : undefined}
+      />
 
       <div className="rounded-2xl bg-white p-6 shadow">
         <h2 className="text-xl font-semibold text-slate-900">عرض المدرسين</h2>
