@@ -34,6 +34,16 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
 
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      return NextResponse.json(
+        {
+          message:
+            "Vercel Blob is not configured. Add BLOB_READ_WRITE_TOKEN to your environment variables.",
+        },
+        { status: 500 },
+      );
+    }
+
     const blob = await put(`teachers/${Date.now()}-${file.name}`, file, {
       access: "public",
       addRandomSuffix: true,
@@ -45,7 +55,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     });
   } catch {
     return NextResponse.json(
-      { message: "Failed to upload image. Configure Vercel Blob token first." },
+      { message: "Failed to upload image to Vercel Blob." },
       { status: 500 },
     );
   }

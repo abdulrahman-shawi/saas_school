@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import toast from "react-hot-toast";
 import { DataTable, type Column, type TableAction } from "@/components/shared/DataTable";
 import { AppModal } from "@/components/ui/app-modal";
 import { useAuth } from "@/context/AuthContext";
@@ -81,6 +82,18 @@ const initialForm: TeacherForm = {
   note: "",
   status: "ACTIVE",
 };
+
+/**
+ * Stores a status message and shows it as an on-screen toast.
+ */
+function showStatus(message: string, type: "success" | "error" = "success"): void {
+  if (type === "success") {
+    toast.success(message);
+    return;
+  }
+
+  toast.error(message);
+}
 
 /**
  * Teachers CRUD panel with complete teacher profile fields.
@@ -217,7 +230,9 @@ export default function TeachersPanel() {
       const method = isEditing ? "PATCH" : "POST";
 
       if (isSuperAdmin && !selectedAcademyId) {
-        setStatusMessage("Please select an academy first.");
+        const message = "Please select an academy first.";
+        setStatusMessage(message);
+        showStatus(message, "error");
         return;
       }
 
@@ -239,11 +254,14 @@ export default function TeachersPanel() {
         };
 
         if (!uploadResponse.ok || !uploadPayload.url) {
-          setStatusMessage(uploadPayload.message ?? "فشل رفع الصورة.");
+          const message = uploadPayload.message ?? "فشل رفع الصورة.";
+          setStatusMessage(message);
+          showStatus(message, "error");
           return;
         }
 
         profilePicUrl = uploadPayload.url;
+        showStatus("تم رفع الصورة بنجاح.");
       }
 
       const body = {
@@ -263,11 +281,15 @@ export default function TeachersPanel() {
       const payload = (await response.json()) as { message?: string };
 
       if (!response.ok) {
-        setStatusMessage(payload.message ?? "Request failed.");
+        const message = payload.message ?? "Request failed.";
+        setStatusMessage(message);
+        showStatus(message, "error");
         return;
       }
 
-      setStatusMessage(isEditing ? "Teacher updated." : "Teacher created.");
+      const successMessage = isEditing ? "Teacher updated." : "Teacher created.";
+      setStatusMessage(successMessage);
+      showStatus(successMessage);
       setEditingTeacherId(null);
       setForm((prev) => ({ ...initialForm, academyId: prev.academyId }));
       setProfileImageFile(null);
@@ -275,7 +297,9 @@ export default function TeachersPanel() {
       setIsFormModalOpen(false);
       await loadTeachers();
     } catch {
-      setStatusMessage("Unexpected error.");
+      const message = "Unexpected error.";
+      setStatusMessage(message);
+      showStatus(message, "error");
     } finally {
       setSubmitting(false);
       setUploadingImage(false);
@@ -360,11 +384,15 @@ export default function TeachersPanel() {
     const payload = (await response.json()) as { message?: string };
 
     if (!response.ok) {
-      setStatusMessage(payload.message ?? "Delete failed.");
+      const message = payload.message ?? "Delete failed.";
+      setStatusMessage(message);
+      showStatus(message, "error");
       return;
     }
 
-    setStatusMessage("Teacher deleted.");
+    const successMessage = "Teacher deleted.";
+    setStatusMessage(successMessage);
+    showStatus(successMessage);
     await loadTeachers();
   }
 
