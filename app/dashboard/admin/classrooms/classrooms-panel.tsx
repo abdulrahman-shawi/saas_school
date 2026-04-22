@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import toast from "react-hot-toast";
 import { DataTable, type Column, type TableAction } from "@/components/shared/DataTable";
 import { AppModal } from "@/components/ui/app-modal";
 import { useAuth } from "@/context/AuthContext";
@@ -65,6 +66,15 @@ const initialForm: ClassroomForm = {
   name: "",
   capacity: "",
 };
+
+function showStatus(message: string, type: "success" | "error" = "success"): void {
+  if (type === "success") {
+    toast.success(message);
+    return;
+  }
+
+  toast.error(message);
+}
 
 /**
  * Manages classrooms and teacher-classroom links.
@@ -203,7 +213,8 @@ export default function ClassroomsPanel() {
       const payload = (await response.json()) as { links?: ClassroomTeacherLink[]; message?: string };
 
       if (!response.ok || !payload.links) {
-        setStatusMessage(payload.message ?? "Failed to load links.");
+        const message = payload.message ?? "Failed to load links.";
+        setStatusMessage(message);
         return;
       }
 
@@ -229,7 +240,8 @@ export default function ClassroomsPanel() {
       const payload = (await response.json()) as { teachers?: TeacherItem[]; message?: string };
 
       if (!response.ok || !payload.teachers) {
-        setStatusMessage(payload.message ?? "Failed to load teachers.");
+        const message = payload.message ?? "Failed to load teachers.";
+        setStatusMessage(message);
         return;
       }
 
@@ -258,7 +270,8 @@ export default function ClassroomsPanel() {
       };
 
       if (!response.ok || !payload.classrooms) {
-        setStatusMessage(payload.message ?? "Failed to load classrooms.");
+        const message = payload.message ?? "Failed to load classrooms.";
+        setStatusMessage(message);
         return;
       }
 
@@ -294,7 +307,9 @@ export default function ClassroomsPanel() {
       };
 
       if (isSuperAdmin && !selectedAcademyId) {
-        setStatusMessage("Please select an academy before saving.");
+        const message = "Please select an academy before saving.";
+        setStatusMessage(message);
+        showStatus(message, "error");
         return;
       }
 
@@ -307,17 +322,23 @@ export default function ClassroomsPanel() {
       const payload = (await response.json()) as { message?: string };
 
       if (!response.ok) {
-        setStatusMessage(payload.message ?? "Request failed.");
+        const message = payload.message ?? "Request failed.";
+        setStatusMessage(message);
+        showStatus(message, "error");
         return;
       }
 
-      setStatusMessage(isEditing ? "Classroom updated." : "Classroom created.");
+      const successMessage = isEditing ? "Classroom updated." : "Classroom created.";
+      setStatusMessage(successMessage);
+      showStatus(successMessage);
       setEditingClassroomId(null);
       setForm((prev) => ({ ...initialForm, academyId: prev.academyId }));
       setIsFormModalOpen(false);
       await Promise.all([loadClassrooms(), loadClassroomTeacherLinks()]);
     } catch {
-      setStatusMessage("Unexpected error.");
+      const message = "Unexpected error.";
+      setStatusMessage(message);
+      showStatus(message, "error");
     } finally {
       setSubmitting(false);
     }
@@ -367,11 +388,14 @@ export default function ClassroomsPanel() {
     const payload = (await response.json()) as { message?: string };
 
     if (!response.ok) {
-      setStatusMessage(payload.message ?? "Delete failed.");
+      const message = payload.message ?? "Delete failed.";
+      setStatusMessage(message);
+      showStatus(message, "error");
       return;
     }
 
     setStatusMessage("Classroom deleted.");
+    showStatus("Classroom deleted.");
 
     if (editingClassroomId === classroomId) {
       cancelEdit();
@@ -413,7 +437,9 @@ export default function ClassroomsPanel() {
    */
   async function handleAssignTeacher(): Promise<void> {
     if (!selectedClassroomId || selectedTeacherIds.length === 0) {
-      setStatusMessage("Please select one classroom and at least one teacher.");
+      const message = "Please select one classroom and at least one teacher.";
+      setStatusMessage(message);
+      showStatus(message, "error");
       return;
     }
 
@@ -439,16 +465,22 @@ export default function ClassroomsPanel() {
       const failed = responses.find((item) => !item.ok);
 
       if (failed) {
-        setStatusMessage(failed.payload.message ?? "Failed to assign classroom.");
+        const message = failed.payload.message ?? "Failed to assign classroom.";
+        setStatusMessage(message);
+        showStatus(message, "error");
         return;
       }
 
       const linkedCount = responses.reduce((sum, item) => sum + (item.payload.count ?? 0), 0);
-      setStatusMessage(`Classroom assigned to ${selectedTeacherIds.length} teacher(s). New links: ${linkedCount}.`);
+      const successMessage = `Classroom assigned to ${selectedTeacherIds.length} teacher(s). New links: ${linkedCount}.`;
+      setStatusMessage(successMessage);
+      showStatus(successMessage);
       closeAssignModal();
       await loadClassroomTeacherLinks();
     } catch {
-      setStatusMessage("Unexpected error.");
+      const message = "Unexpected error.";
+      setStatusMessage(message);
+      showStatus(message, "error");
     } finally {
       setAssigningTeacher(false);
     }

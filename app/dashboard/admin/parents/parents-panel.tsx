@@ -41,6 +41,23 @@ interface ParentItem {
   students: Array<{ id: string; fullName: string; studentCode: string }>;
 }
 
+interface ParentStudentLinkItem {
+  id: string;
+  academyId: string;
+  academyCode: string;
+  academyName: string;
+  relation: string;
+  isPrimary: boolean;
+  parentId: string;
+  parentName: string;
+  parentUsername: string;
+  studentId: string;
+  studentName: string;
+  studentCode: string;
+  studentUsername: string;
+  createdAt: string;
+}
+
 interface ParentForm {
   firstName: string;
   lastName: string;
@@ -88,6 +105,7 @@ export default function ParentsPanel() {
   const [submitting, setSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [linksPage, setLinksPage] = useState(1);
   const [editingParentId, setEditingParentId] = useState<string | null>(null);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
@@ -95,6 +113,8 @@ export default function ParentsPanel() {
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
   const [relation, setRelation] = useState("FATHER");
   const [form, setForm] = useState<ParentForm>(initialForm);
+  const [parentStudentLinks, setParentStudentLinks] = useState<ParentStudentLinkItem[]>([]);
+  const [loadingLinks, setLoadingLinks] = useState(false);
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
   const [profileImagePreview, setProfileImagePreview] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -107,6 +127,22 @@ export default function ParentsPanel() {
       { header: "الوظيفة", accessor: (item) => item.occupation ?? "-" },
       { header: "الطلاب", accessor: (item) => item.students.length > 0 ? item.students.map((student) => student.fullName).join("، ") : "-" },
       { header: "الحالة", accessor: "status" },
+    ];
+
+    if (isSuperAdmin) {
+      base.unshift({ header: "الأكاديمية", accessor: (item) => `${item.academyName} (${item.academyCode})` });
+    }
+
+    return base;
+  }, [isSuperAdmin]);
+
+  const linkColumns = useMemo<Column<ParentStudentLinkItem>[]>(() => {
+    const base: Column<ParentStudentLinkItem>[] = [
+      { header: "ولي الأمر", accessor: "parentName" },
+      { header: "الطالب", accessor: "studentName" },
+      { header: "رقم القبول", accessor: "studentCode" },
+      { header: "نوع العلاقة", accessor: "relation" },
+      { header: "الرابط الأساسي", accessor: (item) => item.isPrimary ? "نعم" : "لا" },
     ];
 
     if (isSuperAdmin) {
@@ -169,6 +205,28 @@ export default function ParentsPanel() {
 
     if (response.ok && payload.students) {
       setStudents(payload.students);
+    }
+  }
+
+  async function loadParentStudentLinks(): Promise<void> {
+    setLoadingLinks(true);
+
+    try {
+      const query = isSuperAdmin && selectedAcademyId ? `?academyId=${selectedAcademyId}` : "";
+      const response = await fetch(`/api/admin/parents/links${query}`);
+      const payload = (await response.json()) as { links?: ParentStudentLinkItem[]; message?: string };
+
+      if (!response.ok || !payload.links) {
+        setStatusMessage(payload.message ?? "Failed to load parent-student links.");
+        return;
+      }
+
+      setParentStudentLinks(payload.links);
+      setLinksPage(1);
+    } catch {
+      setStatusMessage("Could not fetch parent-student links.");
+    } finally {
+      setLoadingLinks(false);
     }
   }
 
@@ -260,7 +318,7 @@ export default function ParentsPanel() {
       setProfileImageFile(null);
       setProfileImagePreview("");
       setIsFormModalOpen(false);
-      await loadParents();
+      await Promise.all([loadParents(), loadParentStudentLinks()]);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unexpected error.";
       setStatusMessage(message);
@@ -296,7 +354,7 @@ export default function ParentsPanel() {
     setStatusMessage(payload.message ?? "Students linked to parent.");
     showStatus(payload.message ?? "Students linked to parent.");
     closeLinkModal();
-    await loadParents();
+    await Promise.all([loadParents(), loadParentStudentLinks()]);
   }
 
   function startEdit(parent: ParentItem): void {
@@ -359,7 +417,7 @@ export default function ParentsPanel() {
 
     setStatusMessage("Parent deleted.");
     showStatus("Parent deleted.");
-    await loadParents();
+    await Promise.all([loadParents(), loadParentStudentLinks()]);
   }
 
   useEffect(() => {
@@ -371,7 +429,7 @@ export default function ParentsPanel() {
       return;
     }
 
-    void Promise.all([loadParents(), loadStudents()]);
+    void Promise.all([loadParents(), loadStudents(), loadParentStudentLinks()]);
   }, [isSuperAdmin, selectedAcademyId]);
 
   return (
@@ -450,6 +508,13 @@ export default function ParentsPanel() {
         {statusMessage && <p className="mt-3 rounded bg-slate-100 px-3 py-2 text-sm text-slate-700">{statusMessage}</p>}
         <div className="mt-4">
           <DataTable data={parents} columns={columns} actions={actions} isLoading={loading} totalCount={parents.length} pageSize={10} currentPage={currentPage} onPageChange={setCurrentPage} />
+        </div>
+      </div>
+
+      <div className="rounded-2xl bg-white p-6 shadow">
+        <h2 className="text-xl font-semibold text-slate-900">روابط الأبوين مع الأبناء</h2>
+        <div className="mt-4">
+          <DataTable data={parentStudentLinks} columns={linkColumns} isLoading={loadingLinks} totalCount={parentStudentLinks.length} pageSize={10} currentPage={linksPage} onPageChange={setLinksPage} />
         </div>
       </div>
     </section>
