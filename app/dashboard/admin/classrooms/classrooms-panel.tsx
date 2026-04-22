@@ -43,15 +43,26 @@ interface ClassroomItem {
 
 interface ClassroomForm {
   academyId: string;
-  code: string;
   name: string;
   capacity: string;
   teacherIds: string[];
 }
 
+interface ClassroomTeacherLink {
+  id: string;
+  classroomId: string;
+  classroomCode: string;
+  classroomName: string;
+  teacherId: string;
+  teacherCode: string;
+  teacherName: string;
+  academyId: string;
+  academyCode: string;
+  academyName: string;
+}
+
 const initialForm: ClassroomForm = {
   academyId: "",
-  code: "",
   name: "",
   capacity: "",
   teacherIds: [],
@@ -76,7 +87,12 @@ export default function ClassroomsPanel() {
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [form, setForm] = useState<ClassroomForm>(initialForm);
   const [classroomsPage, setClassroomsPage] = useState(1);
-  const [teachersPage, setTeachersPage] = useState(1);
+  const [classroomTeacherLinks, setClassroomTeacherLinks] = useState<ClassroomTeacherLink[]>([]);
+  const [loadingLinks, setLoadingLinks] = useState(false);
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [selectedTeacherId, setSelectedTeacherId] = useState<string>("");
+  const [selectedClassroomIds, setSelectedClassroomIds] = useState<string[]>([]);
+  const [assigningTeacher, setAssigningTeacher] = useState(false);
 
   const classroomColumns = useMemo<Column<ClassroomItem>[]>(
     () => {
@@ -112,18 +128,18 @@ export default function ClassroomsPanel() {
     [isSuperAdmin],
   );
 
-  const teacherColumns = useMemo<Column<TeacherItem>[]>(
+  const linkColumns = useMemo<Column<ClassroomTeacherLink>[]>(
     () => {
-      const columns: Column<TeacherItem>[] = [
-        { header: "Teacher Code", accessor: "teacherCode" },
-        { header: "Full Name", accessor: "fullName" },
-        { header: "Username", accessor: "username" },
-        { header: "Status", accessor: "status" },
+      const columns: Column<ClassroomTeacherLink>[] = [
+        { header: "كود الصف", accessor: "classroomCode" },
+        { header: "اسم الصف", accessor: "classroomName" },
+        { header: "كود المدرس", accessor: "teacherCode" },
+        { header: "اسم المدرس", accessor: "teacherName" },
       ];
 
       if (isSuperAdmin) {
         columns.unshift({
-          header: "Academy",
+          header: "الأكاديمية",
           accessor: (item) => `${item.academyName} (${item.academyCode})`,
         });
       }
@@ -176,7 +192,33 @@ export default function ClassroomsPanel() {
   }
 
   /**
-   * Loads teachers by scope (academy-only for normal admin, selectable for super admin).
+   * Loads classroom-teacher links by scope.
+   */
+  async function loadClassroomTeacherLinks(): Promise<void> {
+    setLoadingLinks(true);
+
+    try {
+      const query = isSuperAdmin && selectedAcademyId
+        ? `?academyId=${selectedAcademyId}`
+        : "";
+      const response = await fetch(`/api/admin/classrooms/links${query}`);
+      const payload = (await response.json()) as { links?: ClassroomTeacherLink[]; message?: string };
+
+      if (!response.ok || !payload.links) {
+        setStatusMessage(payload.message ?? "Failed to load links.");
+        return;
+      }
+
+      setClassroomTeacherLinks(payload.links);
+    } catch {
+      setStatusMessage("Could not fetch links.");
+    } finally {
+      setLoadingLinks(false);
+    }
+  }
+
+  /**
+   * Loads teachers by scope for assignment modal.
    */
   async function loadTeachers(): Promise<void> {
     setLoadingTeachers(true);
@@ -194,7 +236,6 @@ export default function ClassroomsPanel() {
       }
 
       setTeachers(payload.teachers);
-      setTeachersPage(1);
     } catch {
       setStatusMessage("Could not fetch teachers.");
     } finally {
@@ -249,7 +290,6 @@ export default function ClassroomsPanel() {
 
       const body = {
         academyId: isSuperAdmin ? selectedAcademyId : undefined,
-        code: form.code,
         name: form.name,
         capacity: form.capacity === "" ? null : Number(form.capacity),
         teacherIds: form.teacherIds,
@@ -277,7 +317,7 @@ export default function ClassroomsPanel() {
       setEditingClassroomId(null);
       setForm((prev) => ({ ...initialForm, academyId: prev.academyId }));
       setIsFormModalOpen(false);
-      await Promise.all([loadClassrooms(), loadTeachers()]);
+      await Promise.all([loadClassrooms(), loadClassroomTeacherLinks()]);
     } catch {
       setStatusMessage("Unexpected error.");
     } finally {
@@ -297,7 +337,6 @@ export default function ClassroomsPanel() {
 
     setForm({
       academyId: classroom.academyId,
-      code: classroom.code,
       name: classroom.name,
       capacity: classroom.capacity ? String(classroom.capacity) : "",
       teacherIds: classroom.teachers.map((teacher) => teacher.teacherId),
@@ -341,7 +380,7 @@ export default function ClassroomsPanel() {
       cancelEdit();
     }
 
-    await loadClassrooms();
+    await Promise.all([loadClassrooms(), loadClassroomTeacherLinks()]);
   }
 
   /**
@@ -363,13 +402,70 @@ export default function ClassroomsPanel() {
     void loadAcademies();
   }, [isSuperAdmin]);
 
+  /**
+   * Opens teacher assignment modal.
+   */
+  function openAssignModal(): void {
+    setSelectedTeacherId("");
+    setSelectedClassroomIds([]);
+    setStatusMessage("");
+    setIsAssignModalOpen(true);
+  }
+
+  /**
+   * Closes teacher assignment modal.
+   */
+  function closeAssignModal(): void {
+    setSelectedTeacherId("");
+    setSelectedClassroomIds([]);
+    setIsAssignModalOpen(false);
+  }
+
+  /**
+   * Assigns selected teacher to selected classrooms.
+   */
+  async function handleAssignTeacher(): Promise<void> {
+    if (!selectedTeacherId || selectedClassroomIds.length === 0) {
+      setStatusMessage("Please select teacher and at least one classroom.");
+      return;
+    }
+
+    setAssigningTeacher(true);
+
+    try {
+      const response = await fetch("/api/admin/classrooms/assign-teacher", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          teacherId: selectedTeacherId,
+          classroomIds: selectedClassroomIds,
+        }),
+      });
+
+      const payload = (await response.json()) as { message?: string; count?: number };
+
+      if (!response.ok) {
+        setStatusMessage(payload.message ?? "Failed to assign teacher.");
+        return;
+      }
+
+      setStatusMessage(`Teacher assigned to ${payload.count} classroom(s).`);
+      closeAssignModal();
+      await loadClassroomTeacherLinks();
+    } catch {
+      setStatusMessage("Unexpected error.");
+    } finally {
+      setAssigningTeacher(false);
+    }
+  }
+
   useEffect(() => {
     if (isSuperAdmin && !selectedAcademyId) {
       return;
     }
 
-    void Promise.all([loadClassrooms(), loadTeachers()]);
-  }, [isSuperAdmin, selectedAcademyId]);
+    void Promise.all([loadClassrooms(), loadTeachers(), loadClassroomTeacherLinks()]);
+  }, [isSuperAdmin, selectedAcademyId, loadClassrooms, loadTeachers, loadClassroomTeacherLinks]);
 
   useEffect(() => {
     if (!isSuperAdmin) {
@@ -421,14 +517,7 @@ export default function ClassroomsPanel() {
           )}
 
           <input
-            className="rounded-lg border border-slate-300 px-3 py-2"
-            placeholder="Classroom Code"
-            value={form.code}
-            onChange={(event) => setForm((prev) => ({ ...prev, code: event.target.value }))}
-            required
-          />
-          <input
-            className="rounded-lg border border-slate-300 px-3 py-2"
+            className="rounded-lg border border-slate-300 px-3 py-2 md:col-span-2"
             placeholder="Classroom Name"
             value={form.name}
             onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
@@ -514,20 +603,98 @@ export default function ClassroomsPanel() {
       </div>
 
       <div className="rounded-2xl bg-white p-6 shadow">
-        <h2 className="text-xl font-semibold text-slate-900">المدرسين</h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-xl font-semibold text-slate-900">ربط الصفوف مع المدرسين</h2>
+          <button
+            type="button"
+            onClick={openAssignModal}
+            className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white"
+          >
+            ربط استاذ بصفوف
+          </button>
+        </div>
 
         <div className="mt-4">
           <DataTable
-            data={teachers}
-            columns={teacherColumns}
-            isLoading={loadingTeachers}
-            totalCount={teachers.length}
-            pageSize={8}
-            currentPage={teachersPage}
-            onPageChange={setTeachersPage}
+            data={classroomTeacherLinks}
+            columns={linkColumns}
+            isLoading={loadingLinks}
+            totalCount={classroomTeacherLinks.length}
+            pageSize={10}
+            currentPage={1}
+            onPageChange={() => {}}
           />
         </div>
       </div>
+
+      <AppModal
+        isOpen={isAssignModalOpen}
+        onClose={closeAssignModal}
+        title="ربط الأستاذ بالصفوف"
+        size="lg"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-700">اختر الأستاذ</label>
+            <select
+              className="w-full rounded-lg border border-slate-300 px-3 py-2"
+              value={selectedTeacherId}
+              onChange={(event) => setSelectedTeacherId(event.target.value)}
+            >
+              <option value="">-- اختر أستاذ --</option>
+              {teachers.map((teacher) => (
+                <option key={teacher.id} value={teacher.id}>
+                  {teacher.fullName} ({teacher.teacherCode})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-700">اختر الصفوف</label>
+            <div className="max-h-48 space-y-2 overflow-y-auto rounded-lg border border-slate-300 p-3">
+              {classrooms.length === 0 ? (
+                <p className="text-sm text-slate-500">لا توجد صفوف متاحة</p>
+              ) : (
+                classrooms.map((classroom) => (
+                  <label key={classroom.id} className="flex items-center gap-2 text-sm text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={selectedClassroomIds.includes(classroom.id)}
+                      onChange={(event) => {
+                        if (event.target.checked) {
+                          setSelectedClassroomIds((prev) => [...prev, classroom.id]);
+                        } else {
+                          setSelectedClassroomIds((prev) => prev.filter((id) => id !== classroom.id));
+                        }
+                      }}
+                    />
+                    <span>
+                      {classroom.name} ({classroom.code})
+                    </span>
+                  </label>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={handleAssignTeacher}
+              disabled={assigningTeacher}
+              className="flex-1 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white disabled:opacity-60"
+            >
+              {assigningTeacher ? "جاري الربط..." : "ربط"}
+            </button>
+            <button
+              onClick={closeAssignModal}
+              className="rounded-lg border border-slate-300 px-4 py-2 font-medium text-slate-700"
+            >
+              إلغاء
+            </button>
+          </div>
+        </div>
+      </AppModal>
     </section>
   );
 }

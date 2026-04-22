@@ -7,7 +7,6 @@ import { NextRequest, NextResponse } from "next/server";
 
 const createClassroomSchema = z.object({
   academyId: z.string().uuid().optional(),
-  code: z.string().min(2),
   name: z.string().min(2),
   capacity: z.number().int().positive().optional().nullable(),
   teacherIds: z.array(z.string().uuid()).optional().default([]),
@@ -16,6 +15,23 @@ const createClassroomSchema = z.object({
 interface AccessScope {
   isSuperAdmin: boolean;
   academyId: string | null;
+}
+
+/**
+ * Builds academy prefix from academy name/code first character.
+ */
+function buildAcademyPrefix(academyName: string, academyCode: string): string {
+  const source = `${academyName}${academyCode}`.trim();
+  const firstLetter = source.match(/[A-Za-z\u0600-\u06FF]/)?.[0] ?? "X";
+
+  return firstLetter.toUpperCase();
+}
+
+/**
+ * Builds classroom code in academy-scoped sequence.
+ */
+function buildClassroomCode(academyPrefix: string, count: number): string {
+  return `${academyPrefix}-C-${String(count + 1).padStart(3, "0")}`;
 }
 
 /**
@@ -142,7 +158,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   const academy = await prisma.academy.findUnique({
     where: { id: targetAcademyId },
-    select: { id: true },
+    select: { id: true, name: true, code: true },
   });
 
   if (!academy) {
@@ -167,10 +183,17 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   try {
     const classroom = await prisma.$transaction(async (tx) => {
+      const classroomCount = await tx.classroom.count({
+        where: { academyId: targetAcademyId },
+      });
+
+      const academyPrefix = buildAcademyPrefix(academy.name, academy.code);
+      const generatedCode = buildClassroomCode(academyPrefix, classroomCount);
+
       const createdClassroom = await tx.classroom.create({
         data: {
           academyId: targetAcademyId,
-          code: payload.code.trim().toUpperCase(),
+          code: generatedCode,
           name: payload.name.trim(),
           capacity: payload.capacity ?? null,
           isActive: true,
