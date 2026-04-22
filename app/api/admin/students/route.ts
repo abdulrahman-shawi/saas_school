@@ -109,6 +109,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   return NextResponse.json({
     students: students.map((student) => ({
       id: student.id,
+      userId: student.user.id,
       academyId: student.academyId,
       academyCode: student.academy.code,
       academyName: student.academy.name,

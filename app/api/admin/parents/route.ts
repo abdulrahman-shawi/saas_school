@@ -120,6 +120,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   return NextResponse.json({
     parents: parents.map((parent) => ({
       id: parent.id,
+      userId: parent.user.id,
       academyId: parent.academyId,
       academyCode: parent.academy.code,
       academyName: parent.academy.name,

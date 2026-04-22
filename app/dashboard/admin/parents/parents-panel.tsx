@@ -25,6 +25,7 @@ interface StudentOption {
 
 interface ParentItem {
   id: string;
+  userId: string;
   academyId: string;
   academyCode: string;
   academyName: string;
@@ -171,7 +172,7 @@ export default function ParentsPanel() {
       return;
     }
 
-    setChatPeer({ id: parent.id, name: parent.fullName });
+    setChatPeer({ id: parent.userId, name: parent.fullName });
     setIsChatModalOpen(true);
   }
 

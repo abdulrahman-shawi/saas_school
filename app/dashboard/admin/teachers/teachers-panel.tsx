@@ -19,6 +19,7 @@ interface AcademyOption {
 
 interface TeacherItem {
   id: string;
+  userId: string;
   academyId: string;
   academyCode: string;
   academyName: string;
@@ -202,7 +203,7 @@ export default function TeachersPanel() {
       return;
     }
 
-    setChatPeer({ id: teacher.id, name: teacher.fullName });
+    setChatPeer({ id: teacher.userId, name: teacher.fullName });
     setIsChatModalOpen(true);
   }
 

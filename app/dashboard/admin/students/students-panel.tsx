@@ -25,6 +25,7 @@ interface ClassroomOption {
 
 interface StudentItem {
   id: string;
+  userId: string;
   academyId: string;
   academyCode: string;
   academyName: string;
@@ -161,7 +162,7 @@ export default function StudentsPanel() {
       return;
     }
 
-    setChatPeer({ id: student.id, name: student.fullName });
+    setChatPeer({ id: student.userId, name: student.fullName });
     setIsChatModalOpen(true);
   }
 
