@@ -45,7 +45,6 @@ interface ClassroomForm {
   academyId: string;
   name: string;
   capacity: string;
-  teacherIds: string[];
 }
 
 interface ClassroomTeacherLink {
@@ -65,7 +64,6 @@ const initialForm: ClassroomForm = {
   academyId: "",
   name: "",
   capacity: "",
-  teacherIds: [],
 };
 
 /**
@@ -292,7 +290,7 @@ export default function ClassroomsPanel() {
         academyId: isSuperAdmin ? selectedAcademyId : undefined,
         name: form.name,
         capacity: form.capacity === "" ? null : Number(form.capacity),
-        teacherIds: form.teacherIds,
+        teacherIds: [],
       };
 
       if (isSuperAdmin && !selectedAcademyId) {
@@ -339,7 +337,6 @@ export default function ClassroomsPanel() {
       academyId: classroom.academyId,
       name: classroom.name,
       capacity: classroom.capacity ? String(classroom.capacity) : "",
-      teacherIds: classroom.teachers.map((teacher) => teacher.teacherId),
     });
     setIsFormModalOpen(true);
   }
@@ -386,17 +383,7 @@ export default function ClassroomsPanel() {
   /**
    * Toggles teacher selection in classroom form.
    */
-  function toggleTeacher(teacherId: string): void {
-    setForm((prev) => {
-      const isSelected = prev.teacherIds.includes(teacherId);
-      return {
-        ...prev,
-        teacherIds: isSelected
-          ? prev.teacherIds.filter((id) => id !== teacherId)
-          : [...prev.teacherIds, teacherId],
-      };
-    });
-  }
+  // Removed - teacher assignment now only via assign-teacher modal
 
   useEffect(() => {
     void loadAcademies();
@@ -531,28 +518,6 @@ export default function ClassroomsPanel() {
             value={form.capacity}
             onChange={(event) => setForm((prev) => ({ ...prev, capacity: event.target.value }))}
           />
-
-          <div className="md:col-span-2 rounded-xl border border-slate-200 p-4">
-            <p className="mb-3 text-sm font-semibold text-slate-700">Assign Teachers</p>
-            {teachers.length === 0 ? (
-              <p className="text-sm text-slate-500">No teachers available for selected academy.</p>
-            ) : (
-              <div className="grid gap-2 md:grid-cols-2">
-                {teachers.map((teacher) => (
-                  <label key={teacher.id} className="flex items-center gap-2 text-sm text-slate-700">
-                    <input
-                      type="checkbox"
-                      checked={form.teacherIds.includes(teacher.id)}
-                      onChange={() => toggleTeacher(teacher.id)}
-                    />
-                    <span>
-                      {teacher.fullName} ({teacher.teacherCode})
-                    </span>
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
 
           <div className="flex items-center gap-2 md:col-span-2">
             <button

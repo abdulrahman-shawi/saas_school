@@ -211,15 +211,9 @@ export default function TeachersPanel() {
     setLoading(true);
 
     try {
-      const params = new URLSearchParams();
-
-      if (isSuperAdmin && selectedAcademyId) {
-        params.set("academyId", selectedAcademyId);
-      }
-
-      // Cache-busting to guarantee fresh rows after create/update/delete.
-      params.set("_t", Date.now().toString());
-      const query = params.toString() ? `?${params.toString()}` : "";
+      const query = isSuperAdmin && selectedAcademyId
+        ? `?academyId=${selectedAcademyId}`
+        : "";
       const response = await fetch(`/api/admin/teachers${query}`);
       const payload = (await response.json()) as {
         teachers?: TeacherItem[];
