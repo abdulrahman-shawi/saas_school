@@ -111,6 +111,7 @@ model Academy {
   links       ParentStudentLink[]
   classrooms  Classroom[]
   classroomLinks ClassroomTeacher[]
+  messages    Message[]
   auditLogs   AuditLog[]
 }
 
@@ -170,6 +171,8 @@ model User {
   parentProfile      ParentProfile?
   staffProfile       StaffProfile?
   receivedPayments   Payment[]       @relation("PaymentReceiver")
+  sentMessages       Message[]       @relation("MessageSender")
+  receivedMessages   Message[]       @relation("MessageReceiver")
   auditLogs          AuditLog[]
 
   @@unique([academyId, username])
@@ -182,9 +185,19 @@ model StudentProfile {
   academyId      String
   userId         String              @unique
   branchId       String?
+  classroomId    String?
   studentCode    String
+  firstName      String?
+  lastName       String?
+  rollNumber     String?
   gender         Gender?
   dateOfBirth    DateTime?
+  profilePicUrl  String?
+  religion       String?
+  caste          String?
+  bloodGroup     String?
+  height         String?
+  weight         String?
   enrollmentDate DateTime            @default(now())
   notes          String?
   createdAt      DateTime            @default(now())
@@ -192,11 +205,13 @@ model StudentProfile {
   academy        Academy             @relation(fields: [academyId], references: [id], onDelete: Cascade)
   user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   branch         Branch?             @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  classroom      Classroom?          @relation(fields: [classroomId], references: [id], onDelete: SetNull)
   enrollments    Enrollment[]
   parentLinks    ParentStudentLink[]
   invoices       Invoice[]
 
   @@unique([academyId, studentCode])
+  @@unique([academyId, rollNumber])
   @@index([academyId, branchId])
 }
 
@@ -243,6 +258,7 @@ model Classroom {
   updatedAt DateTime          @updatedAt
   academy   Academy           @relation(fields: [academyId], references: [id], onDelete: Cascade)
   teachers  ClassroomTeacher[]
+  students  StudentProfile[]
 
   @@unique([academyId, code])
   @@index([academyId, name])
@@ -266,7 +282,12 @@ model ParentProfile {
   id         String              @id @default(uuid())
   academyId  String
   userId     String              @unique
+  firstName  String?
+  lastName   String?
+  gender     Gender?
   occupation String?
+  address    String?
+  profilePicUrl String?
   createdAt  DateTime            @default(now())
   updatedAt  DateTime            @updatedAt
   academy    Academy             @relation(fields: [academyId], references: [id], onDelete: Cascade)
@@ -484,4 +505,23 @@ model AuditLog {
 
   @@index([academyId, createdAt])
   @@index([entityType, entityId])
+}
+
+model Message {
+  id             String   @id @default(uuid())
+  academyId      String
+  senderUserId   String
+  receiverUserId String
+  subject        String?
+  body           String
+  readAt         DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  academy        Academy  @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  sender         User     @relation("MessageSender", fields: [senderUserId], references: [id], onDelete: Cascade)
+  receiver       User     @relation("MessageReceiver", fields: [receiverUserId], references: [id], onDelete: Cascade)
+
+  @@index([academyId, createdAt])
+  @@index([academyId, senderUserId])
+  @@index([academyId, receiverUserId])
 }
