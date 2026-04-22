@@ -99,10 +99,15 @@ export default function TeachersPanel() {
   const [editingTeacherId, setEditingTeacherId] = useState<string | null>(null);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [form, setForm] = useState<TeacherForm>(initialForm);
+  const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
+  const [profileImagePreview, setProfileImagePreview] = useState<string>("");
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   function openCreateModal(): void {
     setEditingTeacherId(null);
     setForm((prev) => ({ ...initialForm, academyId: prev.academyId }));
+    setProfileImageFile(null);
+    setProfileImagePreview("");
     setStatusMessage("");
     setIsFormModalOpen(true);
   }
@@ -110,18 +115,18 @@ export default function TeachersPanel() {
   const columns = useMemo<Column<TeacherItem>[]>(
     () => {
       const base: Column<TeacherItem>[] = [
-        { header: "Teacher Code", accessor: "teacherCode" },
-        { header: "Full Name", accessor: "fullName" },
-        { header: "Username", accessor: "username" },
-        { header: "Email", accessor: (item) => item.email ?? "-" },
-        { header: "Mobile", accessor: (item) => item.mobileNumber ?? "-" },
-        { header: "Gender", accessor: (item) => item.gender ?? "-" },
-        { header: "Status", accessor: "status" },
+        { header: "كود المدرس", accessor: "teacherCode" },
+        { header: "الاسم الكامل", accessor: "fullName" },
+        { header: "اسم المستخدم", accessor: "username" },
+        { header: "البريد الإلكتروني", accessor: (item) => item.email ?? "-" },
+        { header: "الهاتف", accessor: (item) => item.mobileNumber ?? "-" },
+        { header: "الجنس", accessor: (item) => item.gender ?? "-" },
+        { header: "الحالة", accessor: "status" },
       ];
 
       if (isSuperAdmin) {
         base.unshift({
-          header: "Academy",
+          header: "الأكاديمية",
           accessor: (item) => `${item.academyName} (${item.academyCode})`,
         });
       }
@@ -134,11 +139,11 @@ export default function TeachersPanel() {
   const actions = useMemo<TableAction<TeacherItem>[]>(
     () => [
       {
-        label: "Edit",
+        label: "تعديل",
         onClick: (item) => startEdit(item),
       },
       {
-        label: "Delete",
+        label: "حذف",
         onClick: (item) => {
           void deleteTeacher(item.id);
         },
@@ -216,10 +221,36 @@ export default function TeachersPanel() {
         return;
       }
 
+      let profilePicUrl = form.profilePicUrl;
+
+      if (profileImageFile) {
+        setUploadingImage(true);
+        const imageFormData = new FormData();
+        imageFormData.append("file", profileImageFile);
+
+        const uploadResponse = await fetch("/api/uploads/teachers", {
+          method: "POST",
+          body: imageFormData,
+        });
+
+        const uploadPayload = (await uploadResponse.json()) as {
+          url?: string;
+          message?: string;
+        };
+
+        if (!uploadResponse.ok || !uploadPayload.url) {
+          setStatusMessage(uploadPayload.message ?? "فشل رفع الصورة.");
+          return;
+        }
+
+        profilePicUrl = uploadPayload.url;
+      }
+
       const body = {
         ...form,
         academyId: isSuperAdmin ? selectedAcademyId : undefined,
         gender: form.gender === "" ? null : form.gender,
+        profilePicUrl,
         password: form.password,
       };
 
@@ -239,12 +270,15 @@ export default function TeachersPanel() {
       setStatusMessage(isEditing ? "Teacher updated." : "Teacher created.");
       setEditingTeacherId(null);
       setForm((prev) => ({ ...initialForm, academyId: prev.academyId }));
+      setProfileImageFile(null);
+      setProfileImagePreview("");
       setIsFormModalOpen(false);
       await loadTeachers();
     } catch {
       setStatusMessage("Unexpected error.");
     } finally {
       setSubmitting(false);
+      setUploadingImage(false);
     }
   }
 
@@ -278,6 +312,8 @@ export default function TeachersPanel() {
       note: teacher.note ?? "",
       status: teacher.status,
     });
+    setProfileImageFile(null);
+    setProfileImagePreview(teacher.profilePicUrl ?? "");
     setIsFormModalOpen(true);
   }
 
@@ -287,7 +323,24 @@ export default function TeachersPanel() {
   function cancelEdit(): void {
     setEditingTeacherId(null);
     setForm((prev) => ({ ...initialForm, academyId: prev.academyId }));
+    setProfileImageFile(null);
+    setProfileImagePreview("");
     setIsFormModalOpen(false);
+  }
+
+  /**
+   * Handles teacher profile image selection and preview.
+   */
+  function onProfileImageChange(event: React.ChangeEvent<HTMLInputElement>): void {
+    const file = event.target.files?.[0] ?? null;
+    setProfileImageFile(file);
+
+    if (file) {
+      setProfileImagePreview(URL.createObjectURL(file));
+      return;
+    }
+
+    setProfileImagePreview(form.profilePicUrl || "");
   }
 
   /**
@@ -352,13 +405,13 @@ export default function TeachersPanel() {
         <form className="grid gap-3 md:grid-cols-2" onSubmit={handleSubmit}>
           {isSuperAdmin && (
             <div className="md:col-span-2">
-              <label className="mb-1 block text-sm font-medium text-slate-700">Academy</label>
+              <label className="mb-1 block text-sm font-medium text-slate-700">الأكاديمية</label>
               <select
                 className="w-full rounded-lg border border-slate-300 px-3 py-2"
                 value={selectedAcademyId}
                 onChange={(event) => setSelectedAcademyId(event.target.value)}
               >
-                <option value="">All academies (view)</option>
+                <option value="">كل الأكاديميات (عرض)</option>
                 {academies.map((academy) => (
                   <option key={academy.id} value={academy.id}>
                     {academy.name} ({academy.code})
@@ -369,89 +422,101 @@ export default function TeachersPanel() {
           )}
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">First Name</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700">الاسم الأول</label>
             <input className="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="First Name" value={form.firstName} onChange={(event) => setForm((prev) => ({ ...prev, firstName: event.target.value }))} required />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Last Name</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700">اسم العائلة</label>
             <input className="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="Last Name" value={form.lastName} onChange={(event) => setForm((prev) => ({ ...prev, lastName: event.target.value }))} required />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Username</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700">اسم المستخدم</label>
             <input className="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="Username" value={form.username} onChange={(event) => setForm((prev) => ({ ...prev, username: event.target.value }))} required />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Email</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700">البريد الإلكتروني</label>
             <input className="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="Email" type="email" value={form.email} onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))} required />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Password</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700">كلمة المرور</label>
             <input className="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder={editingTeacherId ? "Password (optional)" : "Password"} type="password" value={form.password} onChange={(event) => setForm((prev) => ({ ...prev, password: event.target.value }))} required={!editingTeacherId} />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Mobile Number</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700">رقم الهاتف</label>
             <input className="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="Mobile Number" value={form.mobileNumber} onChange={(event) => setForm((prev) => ({ ...prev, mobileNumber: event.target.value }))} />
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Gender</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700">الجنس</label>
             <select className="w-full rounded-lg border border-slate-300 px-3 py-2" value={form.gender} onChange={(event) => setForm((prev) => ({ ...prev, gender: event.target.value as TeacherForm["gender"] }))}>
-              <option value="">Select Gender</option>
-              <option value="MALE">MALE</option>
-              <option value="FEMALE">FEMALE</option>
-              <option value="OTHER">OTHER</option>
+              <option value="">اختر الجنس</option>
+              <option value="MALE">ذكر</option>
+              <option value="FEMALE">أنثى</option>
+              <option value="OTHER">آخر</option>
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Date of Birth</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700">تاريخ الميلاد</label>
             <input className="w-full rounded-lg border border-slate-300 px-3 py-2" type="date" value={form.dateOfBirth} onChange={(event) => setForm((prev) => ({ ...prev, dateOfBirth: event.target.value }))} />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Date of Joining</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700">تاريخ الانضمام</label>
             <input className="w-full rounded-lg border border-slate-300 px-3 py-2" type="date" value={form.dateOfJoining} onChange={(event) => setForm((prev) => ({ ...prev, dateOfJoining: event.target.value }))} />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Marital Status</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700">الحالة الاجتماعية</label>
             <input className="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="Marital Status" value={form.maritalStatus} onChange={(event) => setForm((prev) => ({ ...prev, maritalStatus: event.target.value }))} />
           </div>
 
           <div className="md:col-span-2">
-            <label className="mb-1 block text-sm font-medium text-slate-700">Profile Pic URL</label>
-            <input className="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="Profile Pic URL" value={form.profilePicUrl} onChange={(event) => setForm((prev) => ({ ...prev, profilePicUrl: event.target.value }))} />
+            <label className="mb-1 block text-sm font-medium text-slate-700">الصورة الشخصية (من الكمبيوتر)</label>
+            <input
+              className="w-full rounded-lg border border-slate-300 px-3 py-2"
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              onChange={onProfileImageChange}
+            />
+            {profileImagePreview && (
+              <img
+                src={profileImagePreview}
+                alt="teacher profile preview"
+                className="mt-2 h-24 w-24 rounded-lg border border-slate-200 object-cover"
+              />
+            )}
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Current Address</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700">العنوان الحالي</label>
             <textarea className="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="Current Address" value={form.currentAddress} onChange={(event) => setForm((prev) => ({ ...prev, currentAddress: event.target.value }))} rows={3} />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Permanent Address</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700">العنوان الدائم</label>
             <textarea className="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="Permanent Address" value={form.permanentAddress} onChange={(event) => setForm((prev) => ({ ...prev, permanentAddress: event.target.value }))} rows={3} />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Qualification</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700">المؤهل</label>
             <textarea className="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="Qualification" value={form.qualification} onChange={(event) => setForm((prev) => ({ ...prev, qualification: event.target.value }))} rows={3} />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Work Experience</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700">الخبرة العملية</label>
             <textarea className="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="Work Experience" value={form.workExperience} onChange={(event) => setForm((prev) => ({ ...prev, workExperience: event.target.value }))} rows={3} />
           </div>
           <div className="md:col-span-2">
-            <label className="mb-1 block text-sm font-medium text-slate-700">Note</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700">ملاحظات</label>
             <textarea className="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="Note" value={form.note} onChange={(event) => setForm((prev) => ({ ...prev, note: event.target.value }))} rows={3} />
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Status</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700">الحالة</label>
             <select className="w-full rounded-lg border border-slate-300 px-3 py-2" value={form.status} onChange={(event) => setForm((prev) => ({ ...prev, status: event.target.value as Status }))}>
-              <option value="ACTIVE">ACTIVE</option>
-              <option value="SUSPENDED">SUSPENDED</option>
-              <option value="PENDING">PENDING</option>
+              <option value="ACTIVE">نشط</option>
+              <option value="SUSPENDED">موقوف</option>
+              <option value="PENDING">قيد الانتظار</option>
             </select>
           </div>
 
           <div className="flex items-center gap-2 md:col-span-2">
-            <button type="submit" disabled={submitting} className="rounded-lg bg-emerald-600 px-4 py-2 font-medium text-white disabled:opacity-60">
-              {submitting ? "Saving..." : editingTeacherId ? "حفظ التعديلات" : "إضافة المدرس"}
+            <button type="submit" disabled={submitting || uploadingImage} className="rounded-lg bg-emerald-600 px-4 py-2 font-medium text-white disabled:opacity-60">
+              {uploadingImage ? "جاري رفع الصورة..." : submitting ? "جاري الحفظ..." : editingTeacherId ? "حفظ التعديلات" : "إضافة المدرس"}
             </button>
             {editingTeacherId && (
               <button type="button" onClick={cancelEdit} className="rounded-lg border border-slate-300 px-4 py-2 font-medium text-slate-700">
