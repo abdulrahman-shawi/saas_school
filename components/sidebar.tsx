@@ -14,6 +14,7 @@ type MenuItem = {
   icon: any;
   label: string;
   href: string;
+  badge?: string;
 };
 
 export const Sidebar = ({ isCollapsed, setIsCollapsed }: { isCollapsed: boolean; setIsCollapsed: (val: boolean) => void }) => {
@@ -40,6 +41,9 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }: { isCollapsed: boolean;
     return () => window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
   }, []);
 
+  /**
+   * Triggers the PWA install prompt when available.
+   */
   const handleInstallApp = async () => {
     if (!deferredPrompt) {
       toast.error("لا يمكن تثبيت التطبيق في الوقت الحالي");
@@ -58,6 +62,9 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }: { isCollapsed: boolean;
     }
   };
 
+  /**
+   * Shows iOS-specific manual install instructions.
+   */
   const handleIOSInstall = () => {
     toast.custom((t) => (
       <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-lg max-w-xs text-right">
@@ -79,33 +86,54 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }: { isCollapsed: boolean;
   const isSuperAdmin = isSuperAdminAcademyCode(user?.academyCode);
   const isAcademyAdmin = user?.accountType === "ACADEMY_ADMIN";
 
-  const menuGroups: Array<{ group: string; items: Array<{ icon: any; label: string; href: string }> }> = [
+  const menuGroups: Array<{ group: string; items: MenuItem[] }> = [
     {
       group: "الرئيسية",
       items: [{ icon: Home, label: "لوحة التحكم", href: "/dashboard" }],
     },
     {
-      group: "الإدارة",
+      group: "الأكاديمية",
       items: [
         ...(isAcademyAdmin
-          ? [{ icon: UserSquare2, label: "المدرسين", href: "/dashboard/admin/teachers" }]
+          ? [{ icon: School, label: "الصفوف والقاعات", href: "/dashboard/admin/classrooms" }]
           : []),
         ...(isAcademyAdmin
-          ? [{ icon: Users, label: "الطلاب", href: "/dashboard/admin/students" }]
-          : []),
-        ...(isAcademyAdmin
-          ? [{ icon: Users, label: "الأبوين", href: "/dashboard/admin/parents" }]
-          : []),
-        ...(isAcademyAdmin
-          ? [{ icon: School, label: "الصفوف والقاعات والمدرسين", href: "/dashboard/admin/classrooms" }]
+          ? [{ icon: Building2, label: "إعدادات الأكاديمية", href: "/dashboard/admin" }]
           : []),
         ...(isSuperAdmin
           ? [{ icon: Building2, label: "تسجيل الأكاديميات", href: "/dashboard/admin/academies" }]
           : []),
       ],
     },
+    {
+      group: "الطلاب",
+      items: [
+        ...(isAcademyAdmin
+          ? [{ icon: Users, label: "إدارة الطلاب", href: "/dashboard/admin/students", badge: "5" }]
+          : []),
+      ],
+    },
+    {
+      group: "الأساتذة",
+      items: [
+        ...(isAcademyAdmin
+          ? [{ icon: UserSquare2, label: "إدارة الأساتذة", href: "/dashboard/admin/teachers" }]
+          : []),
+      ],
+    },
+    {
+      group: "أولياء الأمور",
+      items: [
+        ...(isAcademyAdmin
+          ? [{ icon: Users, label: "إدارة أولياء الأمور", href: "/dashboard/admin/parents" }]
+          : []),
+      ],
+    },
   ].filter((group) => group.items.length > 0);
 
+  /**
+   * Logs out the current user and redirects to login.
+   */
   const handleLogout = async () => {
     try {
       const response = await fetch('/api/auth/logout', {
@@ -126,7 +154,7 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }: { isCollapsed: boolean;
   return (
     <aside className={`
         fixed md:sticky top-0 right-0 h-screen z-[70] transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]
-        bg-white/90 dark:bg-slate-950/90 backdrop-blur-xl border-l border-slate-200 dark:border-slate-800
+        bg-slate-950 text-slate-100 border-l border-slate-800
         flex flex-col shadow-2xl md:shadow-none no-scrollbar
         ${isCollapsed 
           ? "w-[280px] translate-x-full md:translate-x-0 md:w-[88px]" 
@@ -142,15 +170,14 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }: { isCollapsed: boolean;
         </button>
 
         {/* الشعار - Logo Section */}
-        <div className="h-20 flex items-center px-6 mb-4 border-b border-slate-100 dark:border-slate-900">
+        <div className="h-20 flex items-center px-6 mb-4 border-b border-slate-800">
           <div className="flex items-center gap-3 min-w-max">
-            <div className="h-11 w-28 bg-gradient-to-br rounded-xl flex items-center justify-center shrink-0">
-              <img src="/skynova-dark.png" alt="Logo" className="w-28 h-7 object-contain brightness-0 invert dark:block" />
-              {/* <img src="/3-removebg-preview.png" alt="Logo" className="w-28 h-7 object-contain brightness-0 invert" /> */}
+            <div className="h-11 w-11 bg-gradient-to-br from-indigo-500 to-pink-500 rounded-xl flex items-center justify-center shrink-0">
+              <School size={22} className="text-white" />
             </div>
             <div className={`transition-all duration-300 ${isCollapsed ? "md:opacity-0 md:translate-x-4" : "opacity-100"}`}>
-              <h1 className="font-black text-lg tracking-tight text-slate-800 dark:text-white">Skynova</h1>
-              <p className="text-[10px] text-blue-500 font-bold uppercase">إدارة متكاملة</p>
+              <h1 className="font-black text-lg tracking-tight text-white">أكاديمي بلس</h1>
+              <p className="text-[10px] text-slate-400 font-bold">منصة الأكاديميات</p>
             </div>
           </div>
         </div>
@@ -160,7 +187,7 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }: { isCollapsed: boolean;
           <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 space-y-8 custom-scrollbar no-scrollbar">
             {menuGroups.map((group, idx) => (
               <div key={idx} className="space-y-2">
-                <p className={`px-4 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[2px] transition-opacity duration-300 ${isCollapsed ? "md:opacity-0" : "opacity-100"}`}>
+                <p className={`px-4 text-[11px] font-bold text-slate-500 uppercase tracking-[2px] transition-opacity duration-300 ${isCollapsed ? "md:opacity-0" : "opacity-100"}`}>
                   {group.group}
                 </p>
                 
@@ -173,10 +200,10 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }: { isCollapsed: boolean;
                         href={item.href}
                         onClick={() => window.innerWidth < 768 && setIsCollapsed(true)}
                         className={`
-                          relative flex items-center gap-4 h-12 px-4 rounded-xl transition-all duration-300 group
+                          relative flex items-center gap-4 h-12 px-4 rounded-xl transition-all duration-300 group border-r-2
                           ${isActive 
-                            ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" 
-                            : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900"}
+                            ? "bg-indigo-500/20 text-indigo-300 border-r-indigo-500" 
+                            : "text-slate-300 border-r-transparent hover:bg-indigo-500/10 hover:text-indigo-200"}
                         `}
                       >
                         <item.icon size={22} className={`shrink-0 ${isActive ? "animate-pulse" : "group-hover:scale-110 transition-transform"}`} />
@@ -185,9 +212,15 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }: { isCollapsed: boolean;
                           {item.label}
                         </span>
 
+                        {item.badge && !isCollapsed && (
+                          <span className="mr-auto rounded-full bg-rose-500 px-2 py-0.5 text-[11px] font-bold text-white">
+                            {item.badge}
+                          </span>
+                        )}
+
                         {/* Tooltip في حالة التصغير (Desktop) */}
                         {isCollapsed && (
-                          <div className="hidden md:block absolute right-full mr-6 px-3 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold rounded-lg opacity-0 group-hover:opacity-100 group-hover:translate-x-0 translate-x-4 transition-all pointer-events-none shadow-2xl">
+                          <div className="hidden md:block absolute right-full mr-6 px-3 py-2 bg-slate-900 text-white text-xs font-bold rounded-lg opacity-0 group-hover:opacity-100 group-hover:translate-x-0 translate-x-4 transition-all pointer-events-none shadow-2xl">
                             {item.label}
                           </div>
                         )}
@@ -206,7 +239,7 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }: { isCollapsed: boolean;
           {(canInstall || isIOS) && (
             <button 
               onClick={isIOS ? handleIOSInstall : handleInstallApp}
-              className={`w-full flex items-center justify-center gap-2 h-10 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:shadow-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300 font-bold text-sm ${isCollapsed ? "md:h-10 md:w-10 md:mx-auto md:p-0" : "px-3"}`}
+              className={`w-full flex items-center justify-center gap-2 h-10 rounded-xl bg-gradient-to-r from-indigo-500 to-pink-500 text-white hover:shadow-lg transition-all duration-300 font-bold text-sm ${isCollapsed ? "md:h-10 md:w-10 md:mx-auto md:p-0" : "px-3"}`}
               title={isIOS ? "تثبيت التطبيق على iPhone" : "تثبيت التطبيق على الجهاز"}
             >
               <Download size={18} />
@@ -214,18 +247,18 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }: { isCollapsed: boolean;
             </button>
           )}
 
-          <div className={`p-3 rounded-2xl bg-slate-100 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800 transition-all ${isCollapsed ? "md:p-2" : "p-3"}`}>
+          <div className={`p-3 rounded-2xl bg-slate-900 border border-slate-800 transition-all ${isCollapsed ? "md:p-2" : "p-3"}`}>
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0 border-2 border-white dark:border-slate-800 shadow-sm">
-                 <span className="font-bold text-blue-600 text-sm">A</span>
+              <div className="h-10 w-10 rounded-full bg-indigo-500/20 flex items-center justify-center shrink-0 border border-indigo-400/40 shadow-sm">
+                 <span className="font-bold text-indigo-200 text-sm">{user?.username?.charAt(0) || "A"}</span>
               </div>
               <div className={`transition-all duration-300 ${isCollapsed ? "md:hidden" : "block"}`}>
-                <p className="text-xs font-black text-slate-800 dark:text-white truncate">{user?.username}</p>
-                <p className="text-[10px] text-slate-500 font-medium truncate">{user?.email}</p>
+                <p className="text-xs font-black text-white truncate">{user?.username}</p>
+                <p className="text-[10px] text-slate-400 font-medium truncate">{user?.email}</p>
               </div>
             </div>
             
-            <button onClick={handleLogout} className={`mt-3 w-full flex items-center justify-center gap-2 h-10 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors ${isCollapsed ? "md:h-10 md:w-10 md:mx-auto md:p-0" : "px-3"}`}>
+            <button onClick={handleLogout} className={`mt-3 w-full flex items-center justify-center gap-2 h-10 rounded-xl text-rose-400 hover:bg-rose-500/10 transition-colors ${isCollapsed ? "md:h-10 md:w-10 md:mx-auto md:p-0" : "px-3"}`}>
               <LogOut size={18} />
               {!isCollapsed && <span className="font-bold text-xs text-left w-full">خروج</span>}
             </button>
