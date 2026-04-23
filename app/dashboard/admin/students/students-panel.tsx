@@ -55,15 +55,12 @@ interface StudentItem {
 }
 
 interface StudentForm {
-  studentCode: string;
   firstName: string;
   lastName: string;
   classroomId: string;
-  rollNumber: string;
   gender: "" | Gender;
   dateOfBirth: string;
   admissionDate: string;
-  caste: string;
   religion: string;
   mobileNumber: string;
   profilePicUrl: string;
@@ -77,15 +74,12 @@ interface StudentForm {
 }
 
 const initialForm: StudentForm = {
-  studentCode: "",
   firstName: "",
   lastName: "",
   classroomId: "",
-  rollNumber: "",
   gender: "",
   dateOfBirth: "",
   admissionDate: "",
-  caste: "",
   religion: "",
   mobileNumber: "",
   profilePicUrl: "",
@@ -130,7 +124,6 @@ export default function StudentsPanel() {
 
   const columns = useMemo<Column<StudentItem>[]>(() => {
     const base: Column<StudentItem>[] = [
-      { header: "رقم القبول", accessor: "studentCode" },
       { header: "الاسم", accessor: "fullName" },
       { header: "الصف", accessor: (item) => item.classroomName ?? "-" },
       { header: "الهاتف", accessor: (item) => item.mobileNumber ?? "-" },
@@ -312,15 +305,12 @@ export default function StudentsPanel() {
 
     setEditingStudentId(student.id);
     setForm({
-      studentCode: student.studentCode,
       firstName: student.firstName ?? "",
       lastName: student.lastName ?? "",
       classroomId: student.classroomId ?? "",
-      rollNumber: student.rollNumber ?? "",
       gender: student.gender ?? "",
       dateOfBirth: student.dateOfBirth ? student.dateOfBirth.slice(0, 10) : "",
       admissionDate: student.admissionDate ? student.admissionDate.slice(0, 10) : "",
-      caste: student.caste ?? "",
       religion: student.religion ?? "",
       mobileNumber: student.mobileNumber ?? "",
       profilePicUrl: student.profilePicUrl ?? "",
@@ -413,8 +403,6 @@ export default function StudentsPanel() {
 
           <input className="rounded-lg border border-slate-300 px-3 py-2" placeholder="الاسم الأول" value={form.firstName} onChange={(event) => setForm((prev) => ({ ...prev, firstName: event.target.value }))} required />
           <input className="rounded-lg border border-slate-300 px-3 py-2" placeholder="الاسم الأخير" value={form.lastName} onChange={(event) => setForm((prev) => ({ ...prev, lastName: event.target.value }))} required />
-          <input className="rounded-lg border border-slate-300 px-3 py-2" placeholder="رقم القبول" value={form.studentCode} onChange={(event) => setForm((prev) => ({ ...prev, studentCode: event.target.value }))} required />
-          <input className="rounded-lg border border-slate-300 px-3 py-2" placeholder="رقم الجلوس" value={form.rollNumber} onChange={(event) => setForm((prev) => ({ ...prev, rollNumber: event.target.value }))} />
           <select className="rounded-lg border border-slate-300 px-3 py-2" value={form.classroomId} onChange={(event) => setForm((prev) => ({ ...prev, classroomId: event.target.value }))}>
             <option value="">اختر الصف</option>
             {classrooms.map((classroom) => (
@@ -428,7 +416,6 @@ export default function StudentsPanel() {
             <option value="OTHER">آخر</option>
           </select>
           <input className="rounded-lg border border-slate-300 px-3 py-2" type="date" value={form.dateOfBirth} onChange={(event) => setForm((prev) => ({ ...prev, dateOfBirth: event.target.value }))} />
-          <input className="rounded-lg border border-slate-300 px-3 py-2" placeholder="الطائفة / الأصل" value={form.caste} onChange={(event) => setForm((prev) => ({ ...prev, caste: event.target.value }))} />
           <input className="rounded-lg border border-slate-300 px-3 py-2" placeholder="الديانة" value={form.religion} onChange={(event) => setForm((prev) => ({ ...prev, religion: event.target.value }))} />
           <input className="rounded-lg border border-slate-300 px-3 py-2" placeholder="رقم الهاتف" value={form.mobileNumber} onChange={(event) => setForm((prev) => ({ ...prev, mobileNumber: event.target.value }))} />
           <input className="rounded-lg border border-slate-300 px-3 py-2" type="date" value={form.admissionDate} onChange={(event) => setForm((prev) => ({ ...prev, admissionDate: event.target.value }))} />

@@ -97,7 +97,7 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }: { isCollapsed: boolean;
           ? [{ icon: Users, label: "الأبوين", href: "/dashboard/admin/parents" }]
           : []),
         ...(isAcademyAdmin
-          ? [{ icon: School, label: "الصفوف والقاعات والمدرسين", href: "/dashboard/admin/classrooms" }]
+          ? [{ icon: School, label: "الصفوف والمدرسين", href: "/dashboard/admin/classrooms" }]
           : []),
         ...(isSuperAdmin
           ? [{ icon: Building2, label: "تسجيل الأكاديميات", href: "/dashboard/admin/academies" }]

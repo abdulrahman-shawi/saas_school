@@ -1,4 +1,4 @@
-import { Gender, UserRole, UserStatus } from "@prisma/client";
+import { Gender, Prisma, UserRole, UserStatus } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -10,7 +10,7 @@ const createStudentSchema = z.object({
   academyId: z.string().uuid().optional(),
   firstName: z.string().min(2),
   lastName: z.string().min(2),
-  studentCode: z.string().min(2),
+  studentCode: z.string().min(2).optional(),
   rollNumber: z.string().optional().or(z.literal("")),
   classroomId: z.string().uuid().optional().or(z.literal("")),
   gender: z.nativeEnum(Gender).optional().nullable(),
@@ -28,6 +28,26 @@ const createStudentSchema = z.object({
   status: z.nativeEnum(UserStatus).optional(),
   note: z.string().optional(),
 });
+
+function buildStudentCode(sequence: number): string {
+  return `S-${String(sequence).padStart(3, "0")}`;
+}
+
+async function generateStudentCode(tx: Prisma.TransactionClient, academyId: string): Promise<string> {
+  const existing = await tx.studentProfile.findMany({
+    where: { academyId },
+    select: { studentCode: true },
+  });
+
+  const usedCodes = new Set(existing.map((item) => item.studentCode));
+  let sequence = existing.length + 1;
+
+  while (usedCodes.has(buildStudentCode(sequence))) {
+    sequence += 1;
+  }
+
+  return buildStudentCode(sequence);
+}
 
 async function resolveScope(academyIdFromRequest?: string | null): Promise<{ academyId: string; isSuperAdmin: boolean } | NextResponse> {
   const session = await getServerSession();
@@ -182,10 +202,12 @@ export async function POST(request: Request): Promise<NextResponse> {
     const fullName = `${payload.firstName.trim()} ${payload.lastName.trim()}`;
 
     const created = await prisma.$transaction(async (tx) => {
+      const studentCode = payload.studentCode?.trim().toUpperCase() || await generateStudentCode(tx, scope.academyId);
+
       const user = await tx.user.create({
         data: {
           academyId: scope.academyId,
-          username: payload.studentCode.trim().toUpperCase(),
+          username: studentCode,
           fullName,
           email: payload.email?.trim() || null,
           phone: payload.mobileNumber?.trim() || null,
@@ -201,7 +223,7 @@ export async function POST(request: Request): Promise<NextResponse> {
           academyId: scope.academyId,
           userId: user.id,
           classroomId: payload.classroomId?.trim() || null,
-          studentCode: payload.studentCode.trim().toUpperCase(),
+          studentCode,
           firstName: payload.firstName.trim(),
           lastName: payload.lastName.trim(),
           rollNumber: payload.rollNumber?.trim() || null,
