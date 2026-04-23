@@ -462,35 +462,65 @@ export default function ParentsPanel() {
       <AppModal isOpen={isFormModalOpen} onClose={cancelEdit} title={editingParentId ? "تعديل ولي الأمر" : "إضافة ولي أمر"} size="xl">
         <form className="grid gap-3 md:grid-cols-2" onSubmit={handleSubmit}>
           {isSuperAdmin && (
-            <select className="rounded-lg border border-slate-300 px-3 py-2 md:col-span-2" value={selectedAcademyId} onChange={(event) => setSelectedAcademyId(event.target.value)}>
-              <option value="">اختر الأكاديمية</option>
-              {academies.map((academy) => <option key={academy.id} value={academy.id}>{academy.name} ({academy.code})</option>)}
-            </select>
+            <div className="md:col-span-2">
+              <label className="mb-1 block text-sm font-medium text-slate-700">الأكاديمية</label>
+              <select className="w-full rounded-lg border border-slate-300 px-3 py-2" value={selectedAcademyId} onChange={(event) => setSelectedAcademyId(event.target.value)}>
+                <option value="">اختر الأكاديمية</option>
+                {academies.map((academy) => <option key={academy.id} value={academy.id}>{academy.name} ({academy.code})</option>)}
+              </select>
+            </div>
           )}
-          <input className="rounded-lg border border-slate-300 px-3 py-2" placeholder="الاسم الأول" value={form.firstName} onChange={(event) => setForm((prev) => ({ ...prev, firstName: event.target.value }))} required />
-          <input className="rounded-lg border border-slate-300 px-3 py-2" placeholder="الاسم الأخير" value={form.lastName} onChange={(event) => setForm((prev) => ({ ...prev, lastName: event.target.value }))} required />
-          <select className="rounded-lg border border-slate-300 px-3 py-2" value={form.gender} onChange={(event) => setForm((prev) => ({ ...prev, gender: event.target.value as ParentForm["gender"] }))}>
-            <option value="">اختر الجنس</option>
-            <option value="MALE">ذكر</option>
-            <option value="FEMALE">أنثى</option>
-            <option value="OTHER">آخر</option>
-          </select>
-          <input className="rounded-lg border border-slate-300 px-3 py-2" placeholder="الوظيفة" value={form.occupation} onChange={(event) => setForm((prev) => ({ ...prev, occupation: event.target.value }))} />
-          <input className="rounded-lg border border-slate-300 px-3 py-2" placeholder="رقم الهاتف" value={form.mobileNumber} onChange={(event) => setForm((prev) => ({ ...prev, mobileNumber: event.target.value }))} />
-          <input className="rounded-lg border border-slate-300 px-3 py-2" placeholder="العنوان" value={form.address} onChange={(event) => setForm((prev) => ({ ...prev, address: event.target.value }))} />
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">الاسم الأول</label>
+            <input className="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="الاسم الأول" value={form.firstName} onChange={(event) => setForm((prev) => ({ ...prev, firstName: event.target.value }))} required />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">الاسم الأخير</label>
+            <input className="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="الاسم الأخير" value={form.lastName} onChange={(event) => setForm((prev) => ({ ...prev, lastName: event.target.value }))} required />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">الجنس</label>
+            <select className="w-full rounded-lg border border-slate-300 px-3 py-2" value={form.gender} onChange={(event) => setForm((prev) => ({ ...prev, gender: event.target.value as ParentForm["gender"] }))}>
+              <option value="">اختر الجنس</option>
+              <option value="MALE">ذكر</option>
+              <option value="FEMALE">أنثى</option>
+              <option value="OTHER">آخر</option>
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">الوظيفة</label>
+            <input className="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="الوظيفة" value={form.occupation} onChange={(event) => setForm((prev) => ({ ...prev, occupation: event.target.value }))} />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">رقم الهاتف</label>
+            <input className="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="رقم الهاتف" value={form.mobileNumber} onChange={(event) => setForm((prev) => ({ ...prev, mobileNumber: event.target.value }))} />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">العنوان</label>
+            <input className="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="العنوان" value={form.address} onChange={(event) => setForm((prev) => ({ ...prev, address: event.target.value }))} />
+          </div>
           <div className="md:col-span-2">
             <label className="mb-1 block text-sm font-medium text-slate-700">الصورة الشخصية</label>
             <input className="w-full rounded-lg border border-slate-300 px-3 py-2" type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={onProfileImageChange} />
             {profileImagePreview && <img src={profileImagePreview} alt="parent preview" className="mt-2 h-24 w-24 rounded-lg border border-slate-200 object-cover" />}
           </div>
-          <select className="rounded-lg border border-slate-300 px-3 py-2" value={form.status} onChange={(event) => setForm((prev) => ({ ...prev, status: event.target.value as Status }))}>
-            <option value="ACTIVE">نشط</option>
-            <option value="SUSPENDED">موقوف</option>
-            <option value="PENDING">قيد الانتظار</option>
-          </select>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">الحالة</label>
+            <select className="w-full rounded-lg border border-slate-300 px-3 py-2" value={form.status} onChange={(event) => setForm((prev) => ({ ...prev, status: event.target.value as Status }))}>
+              <option value="ACTIVE">نشط</option>
+              <option value="SUSPENDED">موقوف</option>
+              <option value="PENDING">قيد الانتظار</option>
+            </select>
+          </div>
           <div className="md:col-span-2" />
-          <input className="rounded-lg border border-slate-300 px-3 py-2 md:col-span-2" placeholder="البريد الإلكتروني" type="email" value={form.email} onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))} required />
-          <input className="rounded-lg border border-slate-300 px-3 py-2 md:col-span-2" placeholder={editingParentId ? "كلمة المرور الجديدة (اختياري)" : "كلمة المرور"} type="password" value={form.password} onChange={(event) => setForm((prev) => ({ ...prev, password: event.target.value }))} required={!editingParentId} />
+          <div className="md:col-span-2">
+            <label className="mb-1 block text-sm font-medium text-slate-700">البريد الإلكتروني</label>
+            <input className="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="البريد الإلكتروني" type="email" value={form.email} onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))} required />
+          </div>
+          <div className="md:col-span-2">
+            <label className="mb-1 block text-sm font-medium text-slate-700">كلمة المرور</label>
+            <input className="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder={editingParentId ? "كلمة المرور الجديدة (اختياري)" : "كلمة المرور"} type="password" value={form.password} onChange={(event) => setForm((prev) => ({ ...prev, password: event.target.value }))} required={!editingParentId} />
+          </div>
 
           <div className="flex items-center gap-2 md:col-span-2">
             <button type="submit" disabled={submitting || uploadingImage} className="rounded-lg bg-emerald-600 px-4 py-2 font-medium text-white disabled:opacity-60">{uploadingImage ? "جاري رفع الصورة..." : submitting ? "جاري الحفظ..." : editingParentId ? "حفظ التعديلات" : "إضافة ولي الأمر"}</button>

@@ -393,48 +393,96 @@ export default function StudentsPanel() {
       <AppModal isOpen={isFormModalOpen} onClose={cancelEdit} title={editingStudentId ? "تعديل الطالب" : "إضافة طالب"} size="xl">
         <form className="grid gap-3 md:grid-cols-2" onSubmit={handleSubmit}>
           {isSuperAdmin && (
-            <select className="rounded-lg border border-slate-300 px-3 py-2 md:col-span-2" value={selectedAcademyId} onChange={(event) => setSelectedAcademyId(event.target.value)}>
-              <option value="">اختر الأكاديمية</option>
-              {academies.map((academy) => (
-                <option key={academy.id} value={academy.id}>{academy.name} ({academy.code})</option>
-              ))}
-            </select>
+            <div className="md:col-span-2">
+              <label className="mb-1 block text-sm font-medium text-slate-700">الأكاديمية</label>
+              <select className="w-full rounded-lg border border-slate-300 px-3 py-2" value={selectedAcademyId} onChange={(event) => setSelectedAcademyId(event.target.value)}>
+                <option value="">اختر الأكاديمية</option>
+                {academies.map((academy) => (
+                  <option key={academy.id} value={academy.id}>{academy.name} ({academy.code})</option>
+                ))}
+              </select>
+            </div>
           )}
 
-          <input className="rounded-lg border border-slate-300 px-3 py-2" placeholder="الاسم الأول" value={form.firstName} onChange={(event) => setForm((prev) => ({ ...prev, firstName: event.target.value }))} required />
-          <input className="rounded-lg border border-slate-300 px-3 py-2" placeholder="الاسم الأخير" value={form.lastName} onChange={(event) => setForm((prev) => ({ ...prev, lastName: event.target.value }))} required />
-          <select className="rounded-lg border border-slate-300 px-3 py-2" value={form.classroomId} onChange={(event) => setForm((prev) => ({ ...prev, classroomId: event.target.value }))}>
-            <option value="">اختر الصف</option>
-            {classrooms.map((classroom) => (
-              <option key={classroom.id} value={classroom.id}>{classroom.name} ({classroom.code})</option>
-            ))}
-          </select>
-          <select className="rounded-lg border border-slate-300 px-3 py-2" value={form.gender} onChange={(event) => setForm((prev) => ({ ...prev, gender: event.target.value as StudentForm["gender"] }))}>
-            <option value="">اختر الجنس</option>
-            <option value="MALE">ذكر</option>
-            <option value="FEMALE">أنثى</option>
-            <option value="OTHER">آخر</option>
-          </select>
-          <input className="rounded-lg border border-slate-300 px-3 py-2" type="date" value={form.dateOfBirth} onChange={(event) => setForm((prev) => ({ ...prev, dateOfBirth: event.target.value }))} />
-          <input className="rounded-lg border border-slate-300 px-3 py-2" placeholder="الديانة" value={form.religion} onChange={(event) => setForm((prev) => ({ ...prev, religion: event.target.value }))} />
-          <input className="rounded-lg border border-slate-300 px-3 py-2" placeholder="رقم الهاتف" value={form.mobileNumber} onChange={(event) => setForm((prev) => ({ ...prev, mobileNumber: event.target.value }))} />
-          <input className="rounded-lg border border-slate-300 px-3 py-2" type="date" value={form.admissionDate} onChange={(event) => setForm((prev) => ({ ...prev, admissionDate: event.target.value }))} />
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">الاسم الأول</label>
+            <input className="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="الاسم الأول" value={form.firstName} onChange={(event) => setForm((prev) => ({ ...prev, firstName: event.target.value }))} required />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">الاسم الأخير</label>
+            <input className="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="الاسم الأخير" value={form.lastName} onChange={(event) => setForm((prev) => ({ ...prev, lastName: event.target.value }))} required />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">الصف</label>
+            <select className="w-full rounded-lg border border-slate-300 px-3 py-2" value={form.classroomId} onChange={(event) => setForm((prev) => ({ ...prev, classroomId: event.target.value }))}>
+              <option value="">اختر الصف</option>
+              {classrooms.map((classroom) => (
+                <option key={classroom.id} value={classroom.id}>{classroom.name} ({classroom.code})</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">الجنس</label>
+            <select className="w-full rounded-lg border border-slate-300 px-3 py-2" value={form.gender} onChange={(event) => setForm((prev) => ({ ...prev, gender: event.target.value as StudentForm["gender"] }))}>
+              <option value="">اختر الجنس</option>
+              <option value="MALE">ذكر</option>
+              <option value="FEMALE">أنثى</option>
+              <option value="OTHER">آخر</option>
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">تاريخ الميلاد</label>
+            <input className="w-full rounded-lg border border-slate-300 px-3 py-2" type="date" value={form.dateOfBirth} onChange={(event) => setForm((prev) => ({ ...prev, dateOfBirth: event.target.value }))} />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">الديانة</label>
+            <input className="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="الديانة" value={form.religion} onChange={(event) => setForm((prev) => ({ ...prev, religion: event.target.value }))} />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">رقم الهاتف</label>
+            <input className="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="رقم الهاتف" value={form.mobileNumber} onChange={(event) => setForm((prev) => ({ ...prev, mobileNumber: event.target.value }))} />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">تاريخ القبول</label>
+            <input className="w-full rounded-lg border border-slate-300 px-3 py-2" type="date" value={form.admissionDate} onChange={(event) => setForm((prev) => ({ ...prev, admissionDate: event.target.value }))} />
+          </div>
           <div className="md:col-span-2">
             <label className="mb-1 block text-sm font-medium text-slate-700">الصورة الشخصية</label>
             <input className="w-full rounded-lg border border-slate-300 px-3 py-2" type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={onProfileImageChange} />
             {profileImagePreview && <img src={profileImagePreview} alt="student preview" className="mt-2 h-24 w-24 rounded-lg border border-slate-200 object-cover" />}
           </div>
-          <input className="rounded-lg border border-slate-300 px-3 py-2" placeholder="فصيلة الدم" value={form.bloodGroup} onChange={(event) => setForm((prev) => ({ ...prev, bloodGroup: event.target.value }))} />
-          <input className="rounded-lg border border-slate-300 px-3 py-2" placeholder="الطول" value={form.height} onChange={(event) => setForm((prev) => ({ ...prev, height: event.target.value }))} />
-          <input className="rounded-lg border border-slate-300 px-3 py-2" placeholder="الوزن" value={form.weight} onChange={(event) => setForm((prev) => ({ ...prev, weight: event.target.value }))} />
-          <select className="rounded-lg border border-slate-300 px-3 py-2" value={form.status} onChange={(event) => setForm((prev) => ({ ...prev, status: event.target.value as Status }))}>
-            <option value="ACTIVE">نشط</option>
-            <option value="SUSPENDED">موقوف</option>
-            <option value="PENDING">قيد الانتظار</option>
-          </select>
-          <input className="rounded-lg border border-slate-300 px-3 py-2 md:col-span-2" placeholder="البريد الإلكتروني" type="email" value={form.email} onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))} required />
-          <input className="rounded-lg border border-slate-300 px-3 py-2 md:col-span-2" placeholder={editingStudentId ? "كلمة المرور الجديدة (اختياري)" : "كلمة المرور"} type="password" value={form.password} onChange={(event) => setForm((prev) => ({ ...prev, password: event.target.value }))} required={!editingStudentId} />
-          <textarea className="rounded-lg border border-slate-300 px-3 py-2 md:col-span-2" placeholder="ملاحظات" rows={3} value={form.note} onChange={(event) => setForm((prev) => ({ ...prev, note: event.target.value }))} />
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">فصيلة الدم</label>
+            <input className="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="فصيلة الدم" value={form.bloodGroup} onChange={(event) => setForm((prev) => ({ ...prev, bloodGroup: event.target.value }))} />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">الطول</label>
+            <input className="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="الطول" value={form.height} onChange={(event) => setForm((prev) => ({ ...prev, height: event.target.value }))} />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">الوزن</label>
+            <input className="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="الوزن" value={form.weight} onChange={(event) => setForm((prev) => ({ ...prev, weight: event.target.value }))} />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">الحالة</label>
+            <select className="w-full rounded-lg border border-slate-300 px-3 py-2" value={form.status} onChange={(event) => setForm((prev) => ({ ...prev, status: event.target.value as Status }))}>
+              <option value="ACTIVE">نشط</option>
+              <option value="SUSPENDED">موقوف</option>
+              <option value="PENDING">قيد الانتظار</option>
+            </select>
+          </div>
+          <div className="md:col-span-2">
+            <label className="mb-1 block text-sm font-medium text-slate-700">البريد الإلكتروني</label>
+            <input className="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="البريد الإلكتروني" type="email" value={form.email} onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))} required />
+          </div>
+          <div className="md:col-span-2">
+            <label className="mb-1 block text-sm font-medium text-slate-700">كلمة المرور</label>
+            <input className="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder={editingStudentId ? "كلمة المرور الجديدة (اختياري)" : "كلمة المرور"} type="password" value={form.password} onChange={(event) => setForm((prev) => ({ ...prev, password: event.target.value }))} required={!editingStudentId} />
+          </div>
+          <div className="md:col-span-2">
+            <label className="mb-1 block text-sm font-medium text-slate-700">ملاحظات</label>
+            <textarea className="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="ملاحظات" rows={3} value={form.note} onChange={(event) => setForm((prev) => ({ ...prev, note: event.target.value }))} />
+          </div>
 
           <div className="flex items-center gap-2 md:col-span-2">
             <button type="submit" disabled={submitting || uploadingImage} className="rounded-lg bg-emerald-600 px-4 py-2 font-medium text-white disabled:opacity-60">
