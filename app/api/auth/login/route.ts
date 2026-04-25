@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { syncStudentSubscriptionByUserId } from "@/lib/student-subscription";
 import { SESSION_COOKIE_NAME, createSessionToken } from "@/lib/jwt";
 
 const loginSchema = z.object({
@@ -52,7 +53,11 @@ export async function POST(request: Request): Promise<NextResponse> {
     },
   });
 
-  if (!user || user.status !== "ACTIVE") {
+  const resolvedStatus = user?.role === "STUDENT"
+    ? await syncStudentSubscriptionByUserId(user.id)
+    : user?.status;
+
+  if (!user || resolvedStatus !== "ACTIVE") {
     return NextResponse.json(
       { message: "Invalid credentials." },
       { status: 401 },

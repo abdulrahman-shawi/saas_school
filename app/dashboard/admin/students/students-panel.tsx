@@ -49,6 +49,7 @@ interface StudentItem {
   bloodGroup: string | null;
   height: string | null;
   weight: string | null;
+  accessActiveUntil: string | null;
   note: string | null;
   status: Status;
   parents: Array<{ id: string; fullName: string }>;
@@ -126,6 +127,10 @@ export default function StudentsPanel() {
     const base: Column<StudentItem>[] = [
       { header: "الاسم", accessor: "fullName" },
       { header: "الصف", accessor: (item) => item.classroomName ?? "-" },
+      {
+        header: "ساري حتى",
+        accessor: (item) => item.accessActiveUntil ? new Date(item.accessActiveUntil).toLocaleDateString("ar-EG") : "-",
+      },
       { header: "الهاتف", accessor: (item) => item.mobileNumber ?? "-" },
       { header: "الحالة", accessor: "status" },
     ];
@@ -142,6 +147,7 @@ export default function StudentsPanel() {
 
   const actions = useMemo<TableAction<StudentItem>[]>(() => [
     { label: "مراسلة", onClick: (item) => openChat(item) },
+    { label: "تفعيل شهر", onClick: (item) => void activateStudent(item) },
     { label: "تعديل", onClick: (item) => startEdit(item) },
     { label: "حذف", onClick: (item) => void deleteStudent(item.id), variant: "danger" },
   ], [user?.id]);
@@ -364,6 +370,23 @@ export default function StudentsPanel() {
 
     setStatusMessage("Student deleted.");
     showStatus("Student deleted.");
+    await loadStudents();
+  }
+
+  async function activateStudent(student: StudentItem): Promise<void> {
+    const response = await fetch(`/api/admin/students/${student.id}/activate`, { method: "POST" });
+    const payload = (await response.json()) as { message?: string };
+
+    if (!response.ok) {
+      const message = payload.message ?? "Activation failed.";
+      setStatusMessage(message);
+      showStatus(message, "error");
+      return;
+    }
+
+    const message = payload.message ?? "Student activated.";
+    setStatusMessage(message);
+    showStatus(message);
     await loadStudents();
   }
 

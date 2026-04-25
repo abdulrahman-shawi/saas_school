@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "@/lib/session";
 import { isSuperAdminAcademyCode } from "@/lib/super-admin";
+import { getNextBillingDate } from "@/lib/student-subscription";
 import { NextResponse } from "next/server";
 
 const updateStudentSchema = z.object({
@@ -91,6 +92,15 @@ export async function PATCH(request: Request, context: { params: { studentId: st
     const passwordHash = payload.password && payload.password !== ""
       ? await bcrypt.hash(payload.password, 10)
       : undefined;
+    const enrollmentDate = payload.admissionDate ? new Date(payload.admissionDate) : existing.enrollmentDate;
+    const nextActiveUntil = payload.status === UserStatus.ACTIVE
+      ? getNextBillingDate(
+        enrollmentDate,
+        existing.accessActiveUntil && existing.accessActiveUntil > new Date()
+          ? existing.accessActiveUntil
+          : new Date(),
+      )
+      : undefined;
 
     await prisma.$transaction(async (tx) => {
       await tx.user.update({
@@ -122,6 +132,8 @@ export async function PATCH(request: Request, context: { params: { studentId: st
           bloodGroup: payload.bloodGroup?.trim() || undefined,
           height: payload.height?.trim() || undefined,
           weight: payload.weight?.trim() || undefined,
+          accessActiveUntil: nextActiveUntil,
+          lastActivatedAt: payload.status === UserStatus.ACTIVE ? new Date() : undefined,
           notes: payload.note?.trim() || undefined,
         },
       });

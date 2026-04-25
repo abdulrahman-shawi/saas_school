@@ -79,6 +79,16 @@ enum StaffDepartment {
   OTHER
 }
 
+enum Weekday {
+  SUNDAY
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+}
+
 model Academy {
   id          String              @id @default(uuid())
   code        String              @unique
@@ -112,6 +122,7 @@ model Academy {
   links       ParentStudentLink[]
   classrooms  Classroom[]
   classroomLinks ClassroomTeacher[]
+  timetableSlots TimetableSlot[]
   messages    Message[]
   auditLogs   AuditLog[]
 }
@@ -200,6 +211,8 @@ model StudentProfile {
   height         String?
   weight         String?
   enrollmentDate DateTime            @default(now())
+  accessActiveUntil DateTime?
+  lastActivatedAt DateTime?
   notes          String?
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
@@ -243,6 +256,7 @@ model TeacherProfile {
   batches        Batch[]
   sessions       Session[]
   classroomLinks ClassroomTeacher[]
+  timetableSlots TimetableSlot[]
 
   @@unique([academyId, teacherCode])
   @@index([academyId, branchId])
@@ -261,6 +275,7 @@ model Classroom {
   teachers  ClassroomTeacher[]
   subjectLinks ClassroomCourse[]
   students  StudentProfile[]
+  timetableSlots TimetableSlot[]
 
   @@unique([academyId, code])
   @@index([academyId, name])
@@ -361,9 +376,33 @@ model Course {
   academy       Academy  @relation(fields: [academyId], references: [id], onDelete: Cascade)
   batches       Batch[]
   classroomLinks ClassroomCourse[]
+  timetableSlots TimetableSlot[]
 
   @@unique([academyId, code])
   @@index([academyId, name])
+}
+
+model TimetableSlot {
+  id          String         @id @default(uuid())
+  academyId   String
+  classroomId String
+  courseId    String
+  teacherId   String?
+  dayOfWeek   Weekday
+  startTime   String
+  endTime     String
+  roomLabel   String?
+  notes       String?
+  isActive    Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  academy     Academy        @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  classroom   Classroom      @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+  course      Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  teacher     TeacherProfile? @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+
+  @@index([academyId, classroomId, dayOfWeek])
+  @@index([academyId, courseId, dayOfWeek])
 }
 
 model Batch {

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "@/lib/session";
 import { isSuperAdminAcademyCode } from "@/lib/super-admin";
+import { getNextBillingDate, syncStudentSubscriptionsForAcademy } from "@/lib/student-subscription";
 import { NextRequest, NextResponse } from "next/server";
 
 const createStudentSchema = z.object({
@@ -95,6 +96,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       : {}
     : { academyId: session.academyId };
 
+  if ("academyId" in where && typeof where.academyId === "string") {
+    await syncStudentSubscriptionsForAcademy(where.academyId);
+  }
+
   const students = await prisma.studentProfile.findMany({
     where,
     orderBy: { createdAt: "desc" },
@@ -153,6 +158,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       bloodGroup: student.bloodGroup,
       height: student.height,
       weight: student.weight,
+      accessActiveUntil: student.accessActiveUntil,
       note: student.notes,
       status: student.user.status,
       parents: student.parentLinks.map((link) => ({
@@ -200,6 +206,10 @@ export async function POST(request: Request): Promise<NextResponse> {
   try {
     const passwordHash = await bcrypt.hash(payload.password, 10);
     const fullName = `${payload.firstName.trim()} ${payload.lastName.trim()}`;
+    const enrollmentDate = payload.admissionDate ? new Date(payload.admissionDate) : new Date();
+    const initialAccessActiveUntil = (payload.status ?? UserStatus.ACTIVE) === UserStatus.ACTIVE
+      ? getNextBillingDate(enrollmentDate, enrollmentDate)
+      : null;
 
     const created = await prisma.$transaction(async (tx) => {
       const studentCode = payload.studentCode?.trim().toUpperCase() || await generateStudentCode(tx, scope.academyId);
@@ -229,7 +239,9 @@ export async function POST(request: Request): Promise<NextResponse> {
           rollNumber: payload.rollNumber?.trim() || null,
           gender: payload.gender ?? null,
           dateOfBirth: payload.dateOfBirth ? new Date(payload.dateOfBirth) : null,
-          enrollmentDate: payload.admissionDate ? new Date(payload.admissionDate) : new Date(),
+          enrollmentDate,
+          accessActiveUntil: initialAccessActiveUntil,
+          lastActivatedAt: initialAccessActiveUntil ? new Date() : null,
           profilePicUrl: payload.profilePicUrl?.trim() || null,
           caste: payload.caste?.trim() || null,
           religion: payload.religion?.trim() || null,
