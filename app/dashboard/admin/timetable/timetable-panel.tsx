@@ -3,8 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Weekday } from "@prisma/client";
 import toast from "react-hot-toast";
-import { CalendarClock, Plus } from "lucide-react";
-import { DataTable, type Column, type TableAction } from "@/components/shared/DataTable";
+import { CalendarClock, Pencil, Plus, Trash2 } from "lucide-react";
 import { AppModal } from "@/components/ui/app-modal";
 import { useAuth } from "@/context/AuthContext";
 import { isSuperAdminAcademyCode } from "@/lib/super-admin";
@@ -133,31 +132,29 @@ export default function TimetablePanel() {
     }));
   }, [slots]);
 
-  const columns = useMemo<Column<TimetableSlotItem>[]>(() => {
-    const base: Column<TimetableSlotItem>[] = [
-      { header: "اليوم", accessor: (item) => WEEKDAY_LABELS[item.dayOfWeek] },
-      { header: "الوقت", accessor: (item) => `${item.startTime} - ${item.endTime}` },
-      { header: "الصف", accessor: (item) => `${item.classroomName} (${item.classroomCode})` },
-      { header: "المادة", accessor: (item) => `${item.subjectName} (${item.subjectCode})` },
-      { header: "المدرس", accessor: (item) => item.teacherName ?? "-" },
-      { header: "القاعة", accessor: (item) => item.roomLabel ?? "-" },
-      { header: "الحالة", accessor: (item) => item.isActive ? "نشط" : "غير نشط" },
-    ];
+  const weeklyRows = useMemo(() => {
+    return WEEKDAY_OPTIONS.map((day) => {
+      const daySlots = slots.filter((slot) => slot.dayOfWeek === day.value);
+      const primarySlot = daySlots[0] ?? null;
 
-    if (isSuperAdmin) {
-      base.unshift({
-        header: "الأكاديمية",
-        accessor: (item) => `${item.academyName} (${item.academyCode})`,
-      });
-    }
+      return {
+        day: day.value,
+        label: day.label,
+        slot: primarySlot,
+        extraCount: Math.max(0, daySlots.length - 1),
+      };
+    });
+  }, [slots]);
 
-    return base;
-  }, [isSuperAdmin]);
+  const selectedClassroom = useMemo(
+    () => classrooms.find((classroom) => classroom.id === selectedClassroomId) ?? null,
+    [classrooms, selectedClassroomId],
+  );
 
-  const actions = useMemo<TableAction<TimetableSlotItem>[]>(() => [
-    { label: "تعديل", onClick: (item) => startEdit(item) },
-    { label: "حذف", onClick: (item) => void deleteSlot(item.id), variant: "danger" },
-  ], [classrooms, subjectLinks, teachers]);
+  const selectedSubject = useMemo(
+    () => filterSubjects.find((subject) => subject.subjectId === selectedCourseId) ?? null,
+    [filterSubjects, selectedCourseId],
+  );
 
   async function loadAcademies(): Promise<void> {
     if (!isSuperAdmin) {
@@ -263,6 +260,17 @@ export default function TimetablePanel() {
   function openCreateModal(): void {
     setEditingSlotId(null);
     setForm(initialForm);
+    setIsFormModalOpen(true);
+  }
+
+  function openCreateModalForDay(dayOfWeek: Weekday): void {
+    setEditingSlotId(null);
+    setForm({
+      ...initialForm,
+      classroomId: selectedClassroomId,
+      courseId: selectedCourseId,
+      dayOfWeek,
+    });
     setIsFormModalOpen(true);
   }
 
@@ -457,40 +465,82 @@ export default function TimetablePanel() {
         {statusMessage && <p className="mt-4 rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-700">{statusMessage}</p>}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-4">
-        {groupedSlots.map((day) => (
-          <div key={day.value} className="rounded-2xl bg-white p-4 shadow">
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="font-semibold text-slate-900">{day.label}</h3>
-              <span className="rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-600">{day.slots.length}</span>
-            </div>
-
-            <div className="space-y-3">
-              {day.slots.length === 0 ? (
-                <p className="text-sm text-slate-400">لا توجد حصص</p>
-              ) : (
-                day.slots.map((slot) => (
-                  <div key={slot.id} className="rounded-xl border border-slate-200 p-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="font-medium text-slate-900">{slot.subjectName}</p>
-                      <span className={`rounded-full px-2 py-1 text-xs ${slot.isActive ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
-                        {slot.isActive ? "نشط" : "موقوف"}
-                      </span>
-                    </div>
-                    <p className="mt-2 text-sm text-slate-600">{slot.classroomName} • {slot.startTime} - {slot.endTime}</p>
-                    <p className="mt-1 text-xs text-slate-500">{slot.teacherName ?? "بدون مدرس محدد"}</p>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-
       <div className="rounded-2xl bg-white p-6 shadow">
-        <h3 className="text-lg font-semibold text-slate-900">كل الحصص</h3>
-        <div className="mt-4">
-          <DataTable data={slots} columns={columns} actions={actions} isLoading={loading} totalCount={slots.length} pageSize={10} currentPage={currentPage} onPageChange={setCurrentPage} />
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4">
+          <div>
+            <h3 className="text-lg font-semibold text-slate-900">Class Timetable</h3>
+            <p className="mt-1 text-sm text-slate-500">
+              {selectedClassroom ? `${selectedClassroom.name} (${selectedClassroom.code})` : "اختر صفاً من البحث"}
+              {selectedSubject ? ` - ${selectedSubject.subjectName} (${selectedSubject.subjectCode})` : ""}
+            </p>
+          </div>
+
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+            {slots.length} حصة
+          </span>
+        </div>
+
+        <div className="mt-4 overflow-x-auto rounded-2xl border border-slate-200">
+          <table className="min-w-full text-right text-sm">
+            <thead className="bg-slate-50 text-slate-900">
+              <tr>
+                <th className="px-4 py-3 font-semibold">اليوم</th>
+                <th className="px-4 py-3 font-semibold">وقت البداية</th>
+                <th className="px-4 py-3 font-semibold">وقت النهاية</th>
+                <th className="px-4 py-3 font-semibold">رقم القاعة</th>
+                <th className="px-4 py-3 font-semibold">المدرس</th>
+                <th className="px-4 py-3 font-semibold">الإجراءات</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200 bg-white">
+              {weeklyRows.map((row) => (
+                <tr key={row.day} className="hover:bg-slate-50">
+                  <td className="px-4 py-3 font-semibold text-slate-900">{row.label}</td>
+                  <td className="px-4 py-3">
+                    <input readOnly value={row.slot?.startTime ?? "--:--"} className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-slate-700 outline-none" />
+                  </td>
+                  <td className="px-4 py-3">
+                    <input readOnly value={row.slot?.endTime ?? "--:--"} className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-slate-700 outline-none" />
+                  </td>
+                  <td className="px-4 py-3">
+                    <input readOnly value={row.slot?.roomLabel ?? ""} placeholder="-" className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-slate-700 outline-none placeholder:text-slate-400" />
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="space-y-1">
+                      <p className="text-slate-700">{row.slot?.teacherName ?? "-"}</p>
+                      {row.extraCount > 0 && <p className="text-xs text-amber-600">+{row.extraCount} حصة إضافية في نفس اليوم</p>}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-2">
+                      {row.slot ? (
+                        <>
+                          <button type="button" onClick={() => startEdit(row.slot!)} className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-2 text-xs font-medium text-white">
+                            <Pencil size={14} />
+                            تعديل
+                          </button>
+                          <button type="button" onClick={() => void deleteSlot(row.slot!.id)} className="inline-flex items-center gap-1 rounded-lg bg-rose-600 px-3 py-2 text-xs font-medium text-white">
+                            <Trash2 size={14} />
+                            حذف
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => openCreateModalForDay(row.day)}
+                          disabled={!selectedClassroomId || !selectedCourseId}
+                          className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <Plus size={14} />
+                          إضافة
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
