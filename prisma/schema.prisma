@@ -102,6 +102,7 @@ model Academy {
   parents     ParentProfile[]
   staff       StaffProfile[]
   courses     Course[]
+  classroomSubjects ClassroomCourse[]
   batches     Batch[]
   sessions    Session[]
   enrollments Enrollment[]
@@ -258,10 +259,25 @@ model Classroom {
   updatedAt DateTime          @updatedAt
   academy   Academy           @relation(fields: [academyId], references: [id], onDelete: Cascade)
   teachers  ClassroomTeacher[]
+  subjectLinks ClassroomCourse[]
   students  StudentProfile[]
 
   @@unique([academyId, code])
   @@index([academyId, name])
+}
+
+model ClassroomCourse {
+  id          String    @id @default(uuid())
+  academyId   String
+  classroomId String
+  courseId    String
+  createdAt   DateTime  @default(now())
+  academy     Academy   @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  classroom   Classroom @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+  course      Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([academyId, classroomId, courseId])
+  @@index([academyId, courseId])
 }
 
 model ClassroomTeacher {
@@ -344,6 +360,7 @@ model Course {
   updatedAt     DateTime @updatedAt
   academy       Academy  @relation(fields: [academyId], references: [id], onDelete: Cascade)
   batches       Batch[]
+  classroomLinks ClassroomCourse[]
 
   @@unique([academyId, code])
   @@index([academyId, name])
