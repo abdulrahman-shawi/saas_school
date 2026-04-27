@@ -210,6 +210,7 @@ model StudentProfile {
   bloodGroup     String?
   height         String?
   weight         String?
+  feeCollectionAmount Decimal?       @db.Decimal(10, 2)
   enrollmentDate DateTime            @default(now())
   accessActiveUntil DateTime?
   lastActivatedAt DateTime?

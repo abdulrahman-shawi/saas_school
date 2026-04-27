@@ -24,6 +24,7 @@ const createStudentSchema = z.object({
   bloodGroup: z.string().optional(),
   height: z.string().optional(),
   weight: z.string().optional(),
+  feeCollectionAmount: z.string().optional().or(z.literal("")),
   email: z.string().email().optional().or(z.literal("")),
   password: z.string().min(6),
   status: z.nativeEnum(UserStatus).optional(),
@@ -158,6 +159,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       bloodGroup: student.bloodGroup,
       height: student.height,
       weight: student.weight,
+      feeCollectionAmount: student.feeCollectionAmount?.toString() ?? null,
       accessActiveUntil: student.accessActiveUntil,
       note: student.notes,
       status: student.user.status,
@@ -248,6 +250,7 @@ export async function POST(request: Request): Promise<NextResponse> {
           bloodGroup: payload.bloodGroup?.trim() || null,
           height: payload.height?.trim() || null,
           weight: payload.weight?.trim() || null,
+          feeCollectionAmount: payload.feeCollectionAmount?.trim() ? payload.feeCollectionAmount.trim() : null,
           notes: payload.note?.trim() || null,
         },
       });

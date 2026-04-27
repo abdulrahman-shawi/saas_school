@@ -49,6 +49,7 @@ interface StudentItem {
   bloodGroup: string | null;
   height: string | null;
   weight: string | null;
+  feeCollectionAmount: string | null;
   accessActiveUntil: string | null;
   note: string | null;
   status: Status;
@@ -68,6 +69,7 @@ interface StudentForm {
   bloodGroup: string;
   height: string;
   weight: string;
+  feeCollectionAmount: string;
   email: string;
   password: string;
   status: Status;
@@ -87,6 +89,7 @@ const initialForm: StudentForm = {
   bloodGroup: "",
   height: "",
   weight: "",
+  feeCollectionAmount: "",
   email: "",
   password: "",
   status: "ACTIVE",
@@ -130,6 +133,10 @@ export default function StudentsPanel() {
       {
         header: "ساري حتى",
         accessor: (item) => item.accessActiveUntil ? new Date(item.accessActiveUntil).toLocaleDateString("ar-EG") : "-",
+      },
+      {
+        header: "تحصيل الرسوم",
+        accessor: (item) => item.feeCollectionAmount ?? "-",
       },
       { header: "الهاتف", accessor: (item) => item.mobileNumber ?? "-" },
       { header: "الحالة", accessor: "status" },
@@ -323,6 +330,7 @@ export default function StudentsPanel() {
       bloodGroup: student.bloodGroup ?? "",
       height: student.height ?? "",
       weight: student.weight ?? "",
+      feeCollectionAmount: student.feeCollectionAmount ?? "",
       email: student.email ?? "",
       password: "",
       status: student.status,
@@ -485,6 +493,10 @@ export default function StudentsPanel() {
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700">الوزن</label>
             <input className="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="الوزن" value={form.weight} onChange={(event) => setForm((prev) => ({ ...prev, weight: event.target.value }))} />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">تحصيل الرسوم</label>
+            <input className="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="قيمة الرسوم المحصلة" type="number" min="0" step="0.01" value={form.feeCollectionAmount} onChange={(event) => setForm((prev) => ({ ...prev, feeCollectionAmount: event.target.value }))} />
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700">الحالة</label>
